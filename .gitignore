@@ -1,5 +1,6 @@
 # ========== dev interne ==========
 CLAUDE.md
+CLAUDE_BASH_FIX.md
 .claude/
 Rapports_markdown/
 projet.md
@@ -19,7 +20,7 @@ Phase_00_testsInitiaux/README.md
 *.las
 *.jp2
 Phase_00_testsInitiaux/data/
-Phase_00_testsInitiaux/output/
+# Phase_00_testsInitiaux/output/ # a voir si le dossier devient trop lourd
 
 # ========== Python ==========
 __pycache__/
