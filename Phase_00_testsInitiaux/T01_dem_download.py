@@ -11,9 +11,13 @@ import rasterio
 from rasterio.merge import merge
 from rasterio.warp import reproject, Resampling
 from rasterio.transform import from_bounds
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from matplotlib.colors import LightSource
 
 from config import (
-    DEM_DIR, BBOX_L93, BBOX_WGS84, CRS_L93,
+    DEM_DIR, FIGURES_DIR, BBOX_L93, BBOX_WGS84, CRS_L93,
     DEM_RESOLUTION, NODATA_VALUE,
 )
 
@@ -358,6 +362,44 @@ def validate():
 
 
 # =====================================================
+#  Visu hillshade
+# =====================================================
+
+def plot_results():
+    path = get_output_path()
+    if not os.path.exists(path):
+        return
+
+    os.makedirs(FIGURES_DIR, exist_ok=True)
+
+    with rasterio.open(path) as ds:
+        dem = ds.read(1)
+
+    dem_display = np.where(dem == NODATA_VALUE, np.nan, dem)
+
+    ls = LightSource(azdeg=315, altdeg=45)
+    dem_filled = np.where(np.isnan(dem_display), 0, dem_display)
+    hillshade = ls.hillshade(dem_filled, vert_exag=2, dx=DEM_RESOLUTION, dy=DEM_RESOLUTION)
+
+    fig, ax = plt.subplots(1, 1, figsize=(10, 10))
+
+    # hillshade en gris + altitude en couleur par dessus
+    ax.imshow(hillshade, cmap='gray')
+    im = ax.imshow(dem_display, cmap='terrain', alpha=0.5,
+                   vmin=np.nanmin(dem_display), vmax=np.nanmax(dem_display))
+
+    cbar = fig.colorbar(im, ax=ax, shrink=0.7, label='Altitude (m)')
+    ax.set_title(f'DEM Aiguille du Midi - {DEM_RESOLUTION}m', fontsize=12)
+    ax.set_xlabel('pixels')
+    ax.set_ylabel('pixels')
+
+    out_path = os.path.join(FIGURES_DIR, "dem_hillshade.png")
+    fig.savefig(out_path, dpi=150, bbox_inches='tight', facecolor='white')
+    plt.close(fig)
+    print(f"[plot] {out_path}")
+
+
+# =====================================================
 
 def main():
     print("=" * 50)
@@ -371,6 +413,7 @@ def main():
     # check cache
     if check_cache():
         print("\nDEM deja pret, rien a faire")
+        plot_results()
         return
 
     # check dalles brutes deja presentes (dl manuel par ex)
@@ -411,6 +454,10 @@ def main():
     print("\n--- Validation ---")
     if not validate():
         sys.exit(1)
+
+    # visu
+    print("\n--- Visualisation ---")
+    plot_results()
 
     print("\nDone!")
 
