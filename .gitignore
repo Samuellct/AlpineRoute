@@ -1,0 +1,68 @@
+# ========== AI / dev interne ==========
+CLAUDE.md
+.claude/
+Rapports_markdown/
+projet.md
+
+# ========== Donnees geospatiales ==========
+*.tif
+*.tiff
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.gpkg
+*.vrt
+*.laz
+*.las
+*.jp2
+Phase_00_testsInitiaux/data/
+Phase_00_testsInitiaux/output/
+
+# ========== Python ==========
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+*.so
+.venv/
+venv/
+env/
+.env
+
+# ========== Node / Frontend ==========
+node_modules/
+frontend/dist/
+frontend/dist-ssr/
+*.local
+
+# ========== Logs ==========
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# ========== IDE ==========
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+
+# ========== OS ==========
+*.tmp
+*.bak
+*~
