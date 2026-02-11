@@ -1,6 +1,4 @@
-"""
-Config phase 00
-"""
+# config phase 00
 
 import os
 
@@ -49,7 +47,7 @@ END_POINT_WGS84 = (45.8845, 6.9297)    # (lat, lon)
 # ---- Params par defaut pour la surface de cout ----
 DEFAULT_SEASON_MONTH = 7       # juillet
 DEFAULT_ACCLIMATIZED = True
-DEFAULT_LOAD_KG = 10           # kg
+DEFAULT_LOAD_KG = 10
 
 # ---- Divers ----
 NODATA_VALUE = -9999.0
