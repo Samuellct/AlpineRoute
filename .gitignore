@@ -1,10 +1,10 @@
-# ========== AI / dev interne ==========
+# ========== dev interne ==========
 CLAUDE.md
 .claude/
 Rapports_markdown/
 projet.md
 
-# ========== Donnees geospatiales ==========
+# ========== Data ==========
 *.tif
 *.tiff
 *.shp
@@ -35,7 +35,7 @@ venv/
 env/
 .env
 
-# ========== Node / Frontend ==========
+# ========== Frontend ==========
 node_modules/
 frontend/dist/
 frontend/dist-ssr/
