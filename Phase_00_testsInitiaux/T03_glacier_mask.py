@@ -1,5 +1,4 @@
 # T03 - masque glaciaire depuis la data RGI 7.0
-# rasterise les polygones glacier sur la grille DEM pour la surface de cout
 
 import os
 import sys
@@ -14,13 +13,13 @@ from matplotlib.colors import LightSource
 
 from config import (
     RGI_DIR, DERIVED_DIR, DEM_DIR, FIGURES_DIR,
-    BBOX_L93, CRS_L93, DEM_RESOLUTION, NODATA_VALUE,
+    BBOX_L93, CRS_L93, DEM_RESOLUTION, NODATA_VALUE, UHD_DPI,
 )
 
 
-# =====================================================
+# ==================================
 #  Verif donnees RGI
-# =====================================================
+# ==================================
 
 def check_rgi_data():
     if not os.path.isdir(RGI_DIR):
@@ -58,7 +57,7 @@ def load_rgi(shp_paths):
         print(f"  reprojection {gdf.crs} -> L93")
         gdf = gdf.to_crs(CRS_L93)
 
-    # filtre spatial sur notre bbox
+    # filtre spatial sur la bbox
     bbox = BBOX_L93
     gdf = gdf.cx[bbox['xmin']:bbox['xmax'], bbox['ymin']:bbox['ymax']]
     print(f"  {len(gdf)} glaciers dans la bbox")
@@ -66,9 +65,9 @@ def load_rgi(shp_paths):
     return gdf
 
 
-# =====================================================
+# ==================================
 #  Chargement profil DEM (pas les donnees)
-# =====================================================
+# ==================================
 
 def load_dem_profile():
     path = os.path.join(DEM_DIR, f"dem_aiguille_du_midi_{DEM_RESOLUTION}m.tif")
@@ -85,9 +84,9 @@ def load_dem_profile():
     return profile, transform, shape
 
 
-# =====================================================
+# ==================================
 #  Rasterisation
-# =====================================================
+# ==================================
 
 def rasterize_glaciers(gdf, transform, shape):
     if len(gdf) == 0:
@@ -113,9 +112,9 @@ def rasterize_glaciers(gdf, transform, shape):
     return mask
 
 
-# =====================================================
-#  Sauvegarde
-# =====================================================
+# ==================================
+#  Save
+# ==================================
 
 def save_raster(mask, profile):
     os.makedirs(DERIVED_DIR, exist_ok=True)
@@ -129,8 +128,7 @@ def save_raster(mask, profile):
         "compress": "deflate",
         "tiled": True,
     })
-    # virer predictor si present (normalmet pas utile pour uint8 binaire)
-    out_profile.pop("predictor", None)
+    out_profile.pop("predictor", None) # normalmet predictor pas utile pour uint8 bin
 
     with rasterio.open(path, "w", **out_profile) as dst:
         dst.write(mask, 1)
@@ -140,9 +138,9 @@ def save_raster(mask, profile):
     return path
 
 
-# =====================================================
-#  Visualisation
-# =====================================================
+# ==================================
+#  Plot
+# ==================================
 
 def plot_results(mask, transform, shape):
     os.makedirs(FIGURES_DIR, exist_ok=True)
@@ -155,7 +153,7 @@ def plot_results(mask, transform, shape):
     dem_display = np.where(dem == NODATA_VALUE, np.nan, dem)
 
     ls = LightSource(azdeg=315, altdeg=45)
-    # hillshade sur le DEM (nan-safe)
+    # hillshade sur le DEM
     dem_filled = np.where(np.isnan(dem_display), 0, dem_display)
     hillshade = ls.hillshade(dem_filled, vert_exag=2, dx=DEM_RESOLUTION, dy=DEM_RESOLUTION)
 
@@ -163,7 +161,7 @@ def plot_results(mask, transform, shape):
 
     ax.imshow(hillshade, cmap='gray', alpha=0.6)
 
-    # superpose le masque glacier en bleu transparent
+    # superpose le masque glacier
     glacier_overlay = np.ma.masked_where(mask == 0, mask)
     ax.imshow(glacier_overlay, cmap='Blues', alpha=0.5, vmin=0, vmax=1)
 
@@ -176,13 +174,16 @@ def plot_results(mask, transform, shape):
 
     out_path = os.path.join(FIGURES_DIR, "glacier_mask.png")
     fig.savefig(out_path, dpi=150, bbox_inches='tight', facecolor='white')
+    uhd_dir = os.path.join(FIGURES_DIR, "uhd")
+    os.makedirs(uhd_dir, exist_ok=True)
+    fig.savefig(os.path.join(uhd_dir, "glacier_mask.png"), dpi=UHD_DPI, bbox_inches='tight', facecolor='white')
     plt.close(fig)
     print(f"[plot] {out_path}")
 
 
-# =====================================================
+# ==================================
 #  Validation
-# =====================================================
+# ==================================
 
 def validate(gdf, mask):
     print("\n--- Validation ---")
@@ -227,43 +228,36 @@ def validate(gdf, mask):
 
     # sanity checks
     if pct < 1:
-        print("  [warn] < 1% de couverture glaciaire, verifier le fichier RGI")
+        print("  [warn] < 1% de couverture glaciaire")
     if pct > 50:
-        print("  [warn] > 50% de couverture glaciaire, un peu beaucoup non?")
+        print("  [warn] > 50% de couverture glaciaire")
 
     return True
 
 
-# =====================================================
+# ==================================
 
 def main():
-    print("=" * 50)
-    print("T03 - Glacier Mask (RGI 7.0)")
+    print("-" * 50)
+    print("T03 - Glacier wt RGI")
     print(f"  resolution: {DEM_RESOLUTION}m")
-    print("=" * 50)
+    print("-" * 50)
 
-    # check RGI
     shp_files = check_rgi_data()
 
-    # load + filtre
     gdf = load_rgi(shp_files)
 
-    # profil DEM
     profile, transform, shape = load_dem_profile()
 
-    # rasterise
     print("\n--- Rasterisation ---")
     mask = rasterize_glaciers(gdf, transform, shape)
 
-    # save
     print("\n--- Export ---")
     save_raster(mask, profile)
 
-    # visu
     print("\n--- Visualisation ---")
     plot_results(mask, transform, shape)
 
-    # validation
     validate(gdf, mask)
 
     print("\nDone!")
