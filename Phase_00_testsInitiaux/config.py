@@ -13,7 +13,7 @@ MAPS_DIR = os.path.join(OUTPUT_DIR, "maps")
 GPX_DIR = os.path.join(OUTPUT_DIR, "gpx")
 FIGURES_DIR = os.path.join(OUTPUT_DIR, "figures")
 
-# ---- Zone de test Aiguille du Midi ----
+# ---- Zone de test mer de glace ----
 # bbox WGS84 (lon/lat) pour les APIs web
 BBOX_WGS84 = {
     "lon_min": 6.84,
@@ -39,15 +39,33 @@ CRS_WGS84 = "EPSG:4326"
 DEM_RESOLUTION = 1.0  # metres
 
 # ---- pts de test pour le pathfinding ----
-# Gare arrivee telepherique Aiguille du Midi
-START_POINT_WGS84 = (45.8793, 6.8874)  # (lat, lon)
-# Refuge du Requin
-END_POINT_WGS84 = (45.8845, 6.9297)    # (lat, lon)  
+# Refuge du Requin (depart)
+START_POINT_WGS84 = (45.8845, 6.9297)  # (lat, lon)
+# Col du Midi (arrivee)
+END_POINT_WGS84 = (45.8778, 6.8965)
 
 # ---- Params par defaut pour la surface de cout ----
-DEFAULT_SEASON_MONTH = 7       # juillet
+DEFAULT_SEASON_MONTH = 7
 DEFAULT_ACCLIMATIZED = True
 DEFAULT_LOAD_KG = 10
+
+# ---- Export ----
+SIMPLIFY_TOLERANCE_M = 5.0   # Douglas-Peucker en metres (L93)
+UHD_DPI = 600
+
+# ---- T07 ----
+MAP_CENTER_WGS84 = (45.880, 6.933)   # centre approx de la zone
+MAP_DEFAULT_ZOOM = 14
+
+# ---- T08 ----
+C2C_API_BASE = "https://api.camptocamp.org"
+C2C_SEARCH_QUERY = "Aiguille du Midi"
+C2C_RATE_LIMIT_S = 0.3     # pause entre request
+C2C_REQUEST_TIMEOUT = 10
+
+# ---- T09 ----
+API_HOST = "127.0.0.1"
+API_PORT = 8000
 
 # ---- Divers ----
 NODATA_VALUE = -9999.0

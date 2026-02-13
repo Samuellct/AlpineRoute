@@ -18,7 +18,7 @@ from matplotlib.colors import LightSource
 
 from config import (
     DEM_DIR, FIGURES_DIR, BBOX_L93, BBOX_WGS84, CRS_L93,
-    DEM_RESOLUTION, NODATA_VALUE,
+    DEM_RESOLUTION, NODATA_VALUE, UHD_DPI,
 )
 
 
@@ -80,7 +80,6 @@ def wfs_discover_dalles():
 
 def build_dalle_url(dalle_feature):
     # le WFS renvoie directement l'URL WMS-R complete dans properties.url
-    # juste besoin de la modifier pour ajuster WIDTH/HEIGHT selon la resolution voulue
     props = dalle_feature.get("properties", {})
     base_url = props.get("url", "")
     if not base_url:
@@ -90,13 +89,13 @@ def build_dalle_url(dalle_feature):
     parsed = urlparse(base_url)
     params = parse_qs(parsed.query, keep_blank_values=True)
 
-    bbox_str = props.get("bbox", "") # bbox L93 de la dalle (string "xmin,ymin,xmax,ymax")
+    bbox_str = props.get("bbox", "") # bbox L93 de la dalle
     if bbox_str:
         parts = [float(x) for x in bbox_str.split(",")]
         width_m = parts[2] - parts[0]
         height_m = parts[3] - parts[1]
     else:
-        width_m = 1000 # dimension de la tuile, 1km par defaut
+        width_m = 1000 # dim = 1km par defaut
         height_m = 1000
 
     width_px = int(round(width_m / DEM_RESOLUTION))
@@ -395,6 +394,9 @@ def plot_results():
 
     out_path = os.path.join(FIGURES_DIR, "dem_hillshade.png")
     fig.savefig(out_path, dpi=150, bbox_inches='tight', facecolor='white')
+    uhd_dir = os.path.join(FIGURES_DIR, "uhd")
+    os.makedirs(uhd_dir, exist_ok=True)
+    fig.savefig(os.path.join(uhd_dir, "dem_hillshade.png"), dpi=UHD_DPI, bbox_inches='tight', facecolor='white')
     plt.close(fig)
     print(f"[plot] {out_path}")
 
