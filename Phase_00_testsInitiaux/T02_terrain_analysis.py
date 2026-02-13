@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 
 from config import (
     DEM_DIR, DERIVED_DIR, FIGURES_DIR, DEM_RESOLUTION, NODATA_VALUE, CRS_L93,
+    UHD_DPI,
 )
 
 
@@ -73,8 +74,7 @@ def compute_slope_aspect(dem):
                           [ 0,  0,  0],
                           [ 1,  2,  1]], dtype=np.float64) / (8.0 * res)
 
-    # convolve sur le padded, puis trim le padding
-    # !! : scipy.ndimage.convolve propage pas les NaN correctement mais on masque apres de toute facon via le masque dilate on met les nan a 0 pour la convolution
+    # !! scipy.ndimage.convolve propage pas les NaN correctement mais on masque apres de toute facon via le dilate on met les nan a 0 pour la convolution
     padded_clean = np.where(np.isnan(padded), 0.0, padded)
 
     gx_full = convolve(padded_clean, gx_kernel, mode='constant', cval=0.0)
@@ -89,11 +89,10 @@ def compute_slope_aspect(dem):
     slope_deg = np.degrees(slope_rad).astype(np.float32)
 
     # aspect : convention 0=Nord, 90=Est, 180=Sud, 270=Ouest
-    # arctan2(-dy, dx) donne angle depuis l'est, counterclockwise (convertit en azimut geographique)
     aspect_rad = np.arctan2(-gy, gx)
     aspect_deg = np.degrees(aspect_rad)
 
-    # conversion en [0, 360) avec 0=Nord, arctan2 donne 0=Est, on doit tourner de 90
+    # conversion en [0, 360] avec 0=Nord, arctan2 donne 0=Est, on doit tourner de 90
     aspect_deg = 90.0 - aspect_deg
     aspect_deg = np.mod(aspect_deg, 360.0).astype(np.float32)
 
@@ -119,7 +118,7 @@ def compute_slope_aspect(dem):
 def compute_roughness(dem):
     # Terrain Roughness Index : ecart-type local sur fenetre 3x3
     # convolution NaN-aware pour eviter les artefacts pres du nodata
-    # astuce : on convolve separement les valeurs et un masque de validite
+    # on convolve separement les valeurs et un masque de validite
     # comme ca les pixels nodata (mis a 0) ne polluent pas la moyenne
 
     nodata_base = (dem == NODATA_VALUE) | np.isnan(dem)
@@ -236,7 +235,7 @@ def validate():
 
 
 # =====================================================
-#  Visu slope/aspect/roughness
+#  plot
 # =====================================================
 
 def plot_results():
@@ -275,6 +274,9 @@ def plot_results():
 
     out_path = os.path.join(FIGURES_DIR, "terrain_analysis.png")
     fig.savefig(out_path, dpi=150, bbox_inches='tight', facecolor='white')
+    uhd_dir = os.path.join(FIGURES_DIR, "uhd")
+    os.makedirs(uhd_dir, exist_ok=True)
+    fig.savefig(os.path.join(uhd_dir, "terrain_analysis.png"), dpi=UHD_DPI, bbox_inches='tight', facecolor='white')
     plt.close(fig)
     print(f"[plot] {out_path}")
 
@@ -287,27 +289,21 @@ def main():
     print(f"  resolution: {DEM_RESOLUTION}m")
     print("=" * 50)
 
-    # charge le DEM
     dem, profile = load_dem()
 
-    # calcul pente + aspect
-    print("\n--- Slope + Aspect (Horn's method) ---")
+    print("\n--- Slope + Aspect ---")
     slope, aspect = compute_slope_aspect(dem)
 
-    # calcul rugosite
-    print("\n--- Roughness (TRI 3x3) ---")
+    print("\n--- Roughness ---")
     roughness = compute_roughness(dem)
 
-    # save
     print("\n--- Export ---")
     save_raster(slope, "slope", profile)
     save_raster(aspect, "aspect", profile)
     save_raster(roughness, "roughness", profile)
 
-    # validation
     validate()
 
-    # visu
     print("\n--- Visualisation ---")
     plot_results()
 

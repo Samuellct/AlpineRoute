@@ -1,0 +1,1041 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766703.642001444,
+          5760932.391921814
+        ]
+      },
+      "properties": {
+        "type": "waypoint",
+        "name": "Aiguille du Midi",
+        "document_id": 38999,
+        "elevation": 3842
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          768919.4803632974,
+          5757572.57676679
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Traversée de la Vallée Blanche (Midi - Helbronner)",
+        "document_id": 137719,
+        "activities": [
+          "snow_ice_mixed"
+        ],
+        "global_rating": "F",
+        "engagement_rating": "I",
+        "elevation_max": 3842,
+        "height_diff_up": 350
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766742.8165500204,
+          5760550.933630634
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Couloir S de l'arête des Cosmiques",
+        "document_id": 54895,
+        "activities": [
+          "snow_ice_mixed"
+        ],
+        "global_rating": "PD+",
+        "engagement_rating": "II",
+        "elevation_max": 3842,
+        "height_diff_up": 250
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766396.222098,
+          5761639.215287
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Éperon Dent - Maurer",
+        "document_id": 1319401,
+        "activities": [
+          "mountain_climbing"
+        ],
+        "global_rating": "AD",
+        "engagement_rating": null,
+        "elevation_max": null,
+        "height_diff_up": 1000
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          767583.026696874,
+          5762395.275520157
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Éperon de l'EMHM",
+        "document_id": 57366,
+        "activities": [
+          "snow_ice_mixed"
+        ],
+        "global_rating": "AD",
+        "engagement_rating": "II",
+        "elevation_max": 3842,
+        "height_diff_up": 1500
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766650.703959294,
+          5760683.130873891
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Arête des Cosmiques",
+        "document_id": 53884,
+        "activities": [
+          "mountain_climbing",
+          "snow_ice_mixed"
+        ],
+        "global_rating": "AD",
+        "engagement_rating": "II",
+        "elevation_max": 3842,
+        "height_diff_up": 300
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          768655.0858767875,
+          5762154.24508624
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Traversée Midi - Plan",
+        "document_id": 53804,
+        "activities": [
+          "snow_ice_mixed"
+        ],
+        "global_rating": "AD",
+        "engagement_rating": "III",
+        "elevation_max": 3776,
+        "height_diff_up": 630
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          767480.045901,
+          5761449.086597
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Éperon Jumeau",
+        "document_id": 1675813,
+        "activities": [
+          "snow_ice_mixed",
+          "skitouring"
+        ],
+        "global_rating": "AD+",
+        "engagement_rating": null,
+        "elevation_max": 3842,
+        "height_diff_up": 1520
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          765424.974194,
+          5761631.720708
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Arête NW",
+        "document_id": 1432199,
+        "activities": [
+          "mountain_climbing"
+        ],
+        "global_rating": "AD+",
+        "engagement_rating": "III",
+        "elevation_max": 3842,
+        "height_diff_up": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766259.7106446867,
+          5762199.405635176
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Mallory - Porter rectifiée",
+        "document_id": 54000,
+        "activities": [
+          "snow_ice_mixed",
+          "skitouring"
+        ],
+        "global_rating": "AD+",
+        "engagement_rating": "III",
+        "elevation_max": 3842,
+        "height_diff_up": 1530
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          767906.6897385188,
+          5762388.706713039
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Éperon Tournier",
+        "document_id": 134345,
+        "activities": [
+          "snow_ice_mixed"
+        ],
+        "global_rating": "D-",
+        "engagement_rating": "III",
+        "elevation_max": 3750,
+        "height_diff_up": 1250
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          768919.181781,
+          5763010.205441
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Traversée Peigne - Pèlerins - Deux Aigles - Plan - Midi",
+        "document_id": 1459229,
+        "activities": [
+          "mountain_climbing",
+          "snow_ice_mixed"
+        ],
+        "global_rating": "D",
+        "engagement_rating": "III",
+        "elevation_max": 3842,
+        "height_diff_up": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          765724.6514466904,
+          5761807.6658652155
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Eugster Diagonal",
+        "document_id": 54330,
+        "activities": [
+          "skitouring",
+          "snow_ice_mixed"
+        ],
+        "global_rating": "D",
+        "engagement_rating": "IV",
+        "elevation_max": 3842,
+        "height_diff_up": 1642
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766957.049237,
+          5762418.788864
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Éperon Frendo",
+        "document_id": 54021,
+        "activities": [
+          "mountain_climbing",
+          "snow_ice_mixed"
+        ],
+        "global_rating": "D",
+        "engagement_rating": "III",
+        "elevation_max": 3842,
+        "height_diff_up": 1530
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766876.497946,
+          5760893.240866
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Le cas Richard Jewel ",
+        "document_id": 1594360,
+        "activities": [
+          "snow_ice_mixed"
+        ],
+        "global_rating": "D+",
+        "engagement_rating": "II",
+        "elevation_max": 3800,
+        "height_diff_up": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766729.380353642,
+          5760500.921121894
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Voie Leroux",
+        "document_id": 737068,
+        "activities": [
+          "mountain_climbing"
+        ],
+        "global_rating": "D+",
+        "engagement_rating": "II",
+        "elevation_max": 3842,
+        "height_diff_up": 140
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766402.7454178309,
+          5760721.005956106
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Goulotte Burnier - Vogler",
+        "document_id": 117739,
+        "activities": [
+          "snow_ice_mixed"
+        ],
+        "global_rating": "D+",
+        "engagement_rating": "III",
+        "elevation_max": 3842,
+        "height_diff_up": 500
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          765819.00340348,
+          5761672.109572866
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Voie Carli - Chassagne",
+        "document_id": 54911,
+        "activities": [
+          "snow_ice_mixed"
+        ],
+        "global_rating": "D+",
+        "engagement_rating": "III",
+        "elevation_max": 3842,
+        "height_diff_up": 1500
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766706.0909465863,
+          5760481.2147005405
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Voie Rébuffat - Pierre",
+        "document_id": 54331,
+        "activities": [
+          "mountain_climbing"
+        ],
+        "global_rating": "D+",
+        "engagement_rating": "II",
+        "elevation_max": 3842,
+        "height_diff_up": 249
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766493.3511705974,
+          5760755.686334333
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Goulotte Perroux - Profit",
+        "document_id": 261624,
+        "activities": [
+          "snow_ice_mixed"
+        ],
+        "global_rating": "TD-",
+        "engagement_rating": "III",
+        "elevation_max": 3842,
+        "height_diff_up": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          769088.4778555216,
+          5763422.696669881
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Traversée S → N",
+        "document_id": 55828,
+        "activities": [
+          "mountain_climbing"
+        ],
+        "global_rating": "TD-",
+        "engagement_rating": "IV",
+        "elevation_max": 3673,
+        "height_diff_up": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          767204.4245411489,
+          5762211.946085131
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Couloir Chéré",
+        "document_id": 54987,
+        "activities": [
+          "snow_ice_mixed"
+        ],
+        "global_rating": "TD-",
+        "engagement_rating": "V",
+        "elevation_max": 3842,
+        "height_diff_up": 1530
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766645.7773539552,
+          5760430.455736443
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Vas-y Gérard",
+        "document_id": 737069,
+        "activities": [
+          "mountain_climbing"
+        ],
+        "global_rating": "TD",
+        "engagement_rating": "II",
+        "elevation_max": 3842,
+        "height_diff_up": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766653.5404896403,
+          5760435.233050712
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Voie Guiffra - Monaci",
+        "document_id": 446734,
+        "activities": [
+          "mountain_climbing"
+        ],
+        "global_rating": "TD",
+        "engagement_rating": "II",
+        "elevation_max": 3842,
+        "height_diff_up": 250
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766510.6689348185,
+          5760744.937377231
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Goulotte Vent du Dragon",
+        "document_id": 283036,
+        "activities": [
+          "snow_ice_mixed"
+        ],
+        "global_rating": "TD",
+        "engagement_rating": "IV",
+        "elevation_max": 3842,
+        "height_diff_up": 250
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766657.7206396247,
+          5760422.095436475
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Cascade des Cosmiques",
+        "document_id": 128737,
+        "activities": [
+          "snow_ice_mixed"
+        ],
+        "global_rating": "TD",
+        "engagement_rating": "II",
+        "elevation_max": 3800,
+        "height_diff_up": 300
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          767383.5738261922,
+          5762391.095370173
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Couloir en \"S\"",
+        "document_id": 56325,
+        "activities": [
+          "snow_ice_mixed"
+        ],
+        "global_rating": "TD",
+        "engagement_rating": "IV",
+        "elevation_max": 3842,
+        "height_diff_up": 1500
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          765759.2869751321,
+          5761617.170458786
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Eugster direct",
+        "document_id": 54986,
+        "activities": [
+          "snow_ice_mixed"
+        ],
+        "global_rating": "TD",
+        "engagement_rating": "IV",
+        "elevation_max": 3776,
+        "height_diff_up": 1530
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766694.1476609168,
+          5760474.944475564
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "C'est pas physique, c'est électrique",
+        "document_id": 737082,
+        "activities": [
+          "mountain_climbing"
+        ],
+        "global_rating": "TD+",
+        "engagement_rating": "II",
+        "elevation_max": 3842,
+        "height_diff_up": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766669.0667610109,
+          5760443.59335068
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Fred va se taire",
+        "document_id": 737070,
+        "activities": [
+          "mountain_climbing"
+        ],
+        "global_rating": "TD+",
+        "engagement_rating": "II",
+        "elevation_max": 3842,
+        "height_diff_up": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766485.4387438413,
+          5762350.488198896
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Eperon Mossaz-Seigneur",
+        "document_id": 624596,
+        "activities": [
+          "snow_ice_mixed"
+        ],
+        "global_rating": "TD+",
+        "engagement_rating": "IV",
+        "elevation_max": 3842,
+        "height_diff_up": 1500
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766575.3119685048,
+          5760841.304763476
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Jottnar",
+        "document_id": 465038,
+        "activities": [
+          "snow_ice_mixed"
+        ],
+        "global_rating": "ED-",
+        "engagement_rating": "III",
+        "elevation_max": 3777,
+        "height_diff_up": 250
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766722.8115465238,
+          5760489.57500051
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Monsieur 15000V",
+        "document_id": 737092,
+        "activities": [
+          "mountain_climbing"
+        ],
+        "global_rating": "ED",
+        "engagement_rating": "II",
+        "elevation_max": 3842,
+        "height_diff_up": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766681.6072109638,
+          5760457.328129201
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "L'affaire Electra",
+        "document_id": 737072,
+        "activities": [
+          "mountain_climbing"
+        ],
+        "global_rating": "ED",
+        "engagement_rating": "II",
+        "elevation_max": 3842,
+        "height_diff_up": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766886.8824334092,
+          5760791.217609201
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Super Dupont",
+        "document_id": 57845,
+        "activities": [
+          "mountain_climbing"
+        ],
+        "global_rating": "ED",
+        "engagement_rating": "II",
+        "elevation_max": 3842,
+        "height_diff_up": 200
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766798.2035373129,
+          5760781.364398523
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Jet Sept",
+        "document_id": 684245,
+        "activities": [
+          "mountain_climbing",
+          "rock_climbing"
+        ],
+        "global_rating": "ED+",
+        "engagement_rating": "II",
+        "elevation_max": 3840,
+        "height_diff_up": 460
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766849.5596656922,
+          5760777.408185145
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Combinaison voies Mazeaud / Rébuffat / Desmaison",
+        "document_id": 181726,
+        "activities": [
+          "mountain_climbing"
+        ],
+        "global_rating": "ED+",
+        "engagement_rating": "II",
+        "elevation_max": 3842,
+        "height_diff_up": 200
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766970.208507,
+          5761320.46655
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Friendo ou l'œil de cristal ",
+        "document_id": 1673964,
+        "activities": [
+          "skitouring",
+          "snow_ice_mixed"
+        ],
+        "global_rating": null,
+        "engagement_rating": null,
+        "elevation_max": 3842,
+        "height_diff_up": 1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766154.012567,
+          5760684.399848
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Couloir Cunningham (dit de la passerelle)",
+        "document_id": 191798,
+        "activities": [
+          "skitouring"
+        ],
+        "global_rating": null,
+        "engagement_rating": null,
+        "elevation_max": 3800,
+        "height_diff_up": 10
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          768911.6641013294,
+          5759996.703380401
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Vraie Vallée Blanche",
+        "document_id": 50893,
+        "activities": [
+          "skitouring"
+        ],
+        "global_rating": null,
+        "engagement_rating": null,
+        "elevation_max": 3795,
+        "height_diff_up": 1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          769099.784940833,
+          5759160.440183921
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Vallée Blanche classique",
+        "document_id": 50892,
+        "activities": [
+          "skitouring"
+        ],
+        "global_rating": null,
+        "engagement_rating": null,
+        "elevation_max": 3795,
+        "height_diff_up": 50
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          769405.5720900486,
+          5761325.0824786285
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Vallée Blanche - Petit Envers",
+        "document_id": 50891,
+        "activities": [
+          "skitouring"
+        ],
+        "global_rating": null,
+        "engagement_rating": null,
+        "elevation_max": 3795,
+        "height_diff_up": 50
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766282.402887,
+          5760444.339806
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Glacier Rond",
+        "document_id": 47971,
+        "activities": [
+          "skitouring"
+        ],
+        "global_rating": null,
+        "engagement_rating": null,
+        "elevation_max": 3842,
+        "height_diff_up": 50
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          769630.1058606361,
+          5761760.452564052
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Vallée Blanche - Grand Envers",
+        "document_id": 47909,
+        "activities": [
+          "skitouring"
+        ],
+        "global_rating": null,
+        "engagement_rating": null,
+        "elevation_max": 3795,
+        "height_diff_up": 1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766523.657257984,
+          5760355.959492081
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Petit Couloir S",
+        "document_id": 46094,
+        "activities": [
+          "skitouring"
+        ],
+        "global_rating": null,
+        "engagement_rating": null,
+        "elevation_max": 3650,
+        "height_diff_up": 100
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766916.1434833,
+          5760861.085830368
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Couloir du Câble",
+        "document_id": 45880,
+        "activities": [
+          "skitouring"
+        ],
+        "global_rating": null,
+        "engagement_rating": null,
+        "elevation_max": 3842,
+        "height_diff_up": 300
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          766019.053438445,
+          5760085.145489524
+        ]
+      },
+      "properties": {
+        "type": "route",
+        "name": "Couloir des Cosmiques",
+        "document_id": 45494,
+        "activities": [
+          "skitouring"
+        ],
+        "global_rating": null,
+        "engagement_rating": null,
+        "elevation_max": 3842,
+        "height_diff_up": 100
+      }
+    }
+  ]
+}
