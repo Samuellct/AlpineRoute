@@ -19,8 +19,10 @@ Phase_00_testsInitiaux/README.md
 *.laz
 *.las
 *.jp2
+data/
 Phase_00_testsInitiaux/data/
 Phase_00_testsInitiaux/output/figures/uhd
+output/
 # Phase_00_testsInitiaux/output/ # a voir si le dossier devient trop lourd
 
 # ========== Python ==========

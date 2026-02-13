@@ -1,0 +1,22 @@
+# geospatial (install via conda-forge on windows, pip ok on linux/docker)
+numpy
+scipy
+rasterio
+gdal
+scikit-image
+geopandas
+shapely
+pyproj
+fiona
+
+# api
+fastapi
+uvicorn[standard]
+httpx
+pydantic
+
+# export
+gpxpy
+
+# dev
+owslib
