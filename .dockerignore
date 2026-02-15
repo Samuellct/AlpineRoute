@@ -1,0 +1,38 @@
+# git
+.git/
+.gitignore
+
+# data (monte via volume en runtime)
+data/
+*.tif
+*.tiff
+*.shp
+*.shx
+*.dbf
+*.prj
+*.vrt
+
+# frontend (build dans son propre Dockerfile)
+frontend/node_modules/
+frontend/dist/
+
+# python caches
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# test scripts
+Phase_00_testsInitiaux/
+
+# docs / internal
+Rapports_markdown/
+.claude/
+CLAUDE.md
+projet.md
+
+# IDE
+.vscode/
+.idea/
+*.sw?

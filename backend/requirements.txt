@@ -1,22 +1,24 @@
-# geospatial (install via conda-forge on windows, pip ok on linux/docker)
-numpy
-scipy
-rasterio
-gdal
-scikit-image
-geopandas
-shapely
-pyproj
-fiona
+# geospatial
+# nota: sur windows, installer via conda-forge. En docker (linux), pip suffit
+# pas besoin de gdal separement, rasterio PyPI embarque ses propres bindings
+numpy>=1.26
+scipy>=1.12
+rasterio>=1.3
+scikit-image>=0.22
+geopandas>=0.14
+shapely>=2.0
+pyproj>=3.6
+fiona>=1.9
+owslib>=0.31
 
 # api
-fastapi
-uvicorn[standard]
-httpx
-pydantic
+fastapi>=0.110
+uvicorn[standard]>=0.27
+httpx>=0.27
+pydantic>=2.6
+
+# viz / terrain
+matplotlib>=3.8
 
 # export
-gpxpy
-
-# dev
-owslib
+gpxpy>=1.6
