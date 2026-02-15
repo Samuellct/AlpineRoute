@@ -1,0 +1,72 @@
+{
+  "Alpes du Nord (Chamonix-Vanoise)": {
+    "nb_dalles": 6339,
+    "couvert": true,
+    "coverage_pct": 63.4,
+    "bbox_km2": 10000,
+    "remarque": "partiellement couvert"
+  },
+  "Alpes du Nord (Ecrins-Oisans)": {
+    "nb_dalles": 3373,
+    "couvert": true,
+    "coverage_pct": 112.4,
+    "bbox_km2": 3000,
+    "remarque": "bien couvert"
+  },
+  "Alpes du Sud (Mercantour-Queyras)": {
+    "nb_dalles": 6651,
+    "couvert": true,
+    "coverage_pct": 73.9,
+    "bbox_km2": 9000,
+    "remarque": "partiellement couvert"
+  },
+  "Pyrenees Centrales": {
+    "nb_dalles": 5829,
+    "couvert": true,
+    "coverage_pct": 69.4,
+    "bbox_km2": 8400,
+    "remarque": "partiellement couvert"
+  },
+  "Pyrenees Orientales": {
+    "nb_dalles": 7522,
+    "couvert": true,
+    "coverage_pct": 104.5,
+    "bbox_km2": 7200,
+    "remarque": "bien couvert"
+  },
+  "Massif Central (Cantal-Sancy)": {
+    "nb_dalles": 9396,
+    "couvert": true,
+    "coverage_pct": 104.4,
+    "bbox_km2": 9000,
+    "remarque": "bien couvert"
+  },
+  "Vosges": {
+    "nb_dalles": 7645,
+    "couvert": true,
+    "coverage_pct": 95.6,
+    "bbox_km2": 8000,
+    "remarque": "bien couvert"
+  },
+  "Jura": {
+    "nb_dalles": 8380,
+    "couvert": true,
+    "coverage_pct": 99.8,
+    "bbox_km2": 8400,
+    "remarque": "bien couvert"
+  },
+  "Corse": {
+    "nb_dalles": 7928,
+    "couvert": true,
+    "coverage_pct": 80.9,
+    "bbox_km2": 9800,
+    "remarque": "bien couvert"
+  },
+  "Chamonix (secteur test)": {
+    "nb_dalles": 61,
+    "couvert": true,
+    "coverage_pct": 169.4,
+    "bbox_km2": 36,
+    "remarque": "bien couvert"
+  }
+}
