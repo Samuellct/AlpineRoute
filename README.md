@@ -1,6 +1,6 @@
 # AlpineRoute
 
-Calcul d'itinéraires optimaux pour l'alpinisme hors-sentier dans les Alpes (France et étranger). Genère des traces GPS en tenant compte de la topographie réelle du terrain à partir de modèles numeriques de terrain (Lidar MNT).
+Calcul d'itinéraires optimaux pour l'alpinisme hors-piste dans les Alpes (France et étranger). Genère des traces GPS en tenant compte de la topographie réelle du terrain à partir de modèles numeriques de terrain (Lidar MNT).
 
 ## Fonctionnalités
 
