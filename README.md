@@ -1,62 +1,91 @@
 # AlpineRoute
 
-Outil de calcul d'itineraires optimaux pour l'alpinisme hors-track. L'idée de base est de générer "automatiquement" des traces GPS en prenant en compte la topographie reelle du terrain (pentes, orientation, glaciers, zones de danger) a partir de modeles numeriques de terrain en hd.
+Calcul d'itinéraires optimaux pour l'alpinisme hors-sentier dans les Alpes (France et étranger). Genère des traces GPS en tenant compte de la topographie réelle du terrain à partir de modèles numeriques de terrain (Lidar MNT).
 
-## Contexte
+## Fonctionnalités
 
-La plupart des outils de planification d'itinéraires existants (CalTopo, Strava, Gaia GPS) sont conçus pour la rando sur sentier. Pour l'alpinisme hors-sentier, la planification reste largement manuelle : on étudie la carte, on trace un itinéraire au jugé, et on espère que ça passe. AlpineRoute vise à automatiser cette étape en s'appuyant sur des données topo précises et des modèles scientifiques de coût de déplacement en montagne.
-
-## Etat du projet
-
-Le projet est encore à l'étape de recherches d'infos et de tests. Je prévois de tester les différents modules prévus en utilisant des données d'une zone connue (surement autour de l'Aiguille du Midi).
-
-Les points à valider :
-- Dl et traitement des donnees Lidar HD MNT de l'IGN
-- Calcul des attributs de terrain (pente, orientation, rugosité, etc)
-- Intégration des contours glaciaires (Randolph Glacier Inventory (?))
-- Test du calcul de cout multi-critères
-- Pathfinding sur grille raster avec skimage
-- Export des resultats en GPX et GeoJSON
-- Affichage sur une carte web
-
-## Sources de donnees prévues
-
-- **MNT** : Lidar HD (only france) a 50 cm de resolution (maybe sous-echantillonne à 1 ou 2 m pour les tests). Fallback prevu sur Copernicus DEM GLO-30 si les data ne sont pas disponibles.
-- **Glaciers** : RGI 7.0
-- **Couverture du sol** : ESA WorldCover 10 m
-- **Itineraires de reference** : API CampToCamp v6 (pour comparaison/validation)
+- Téléchargement automatique des données MNT IGN Lidar HD (50 cm natif, échantillonnage 0.5 - 10 m pour le projet)
+- Fallback MapTiler pour les zones non couvertes par le lidar
+- Calcul de pente, orientation et rugosité via Horn's method (scipy)
+- Fonction de cout multi-critères : pente, altitude, aspect/saison, glacier, rugosité, couverture du sol
+- Intégration des contours glaciaires RGI 7.0 et du landcover ESA WorldCover 10 m
+- Pathfinding Dijkstra sur grille (skimage)
+- Export GPX et GeoJSON
+- Lien backend avec API REST, calcul asynchrone et suivi de progression (SSE)
 
 ## Stack technique
 
-### Phase de test
-- Python 3.11 (Miniforge)
-- Rasterio, GDAL, NumPy, SciPy, scikit-image
-- GeoPandas, Shapely, pyproj
-- FastAPI (endpoint minimal)
-- Frontend basique : Vite + React + TypeScript, Leaflet
+**Backend** : Python 3.11 (Miniforge), FastAPI, NumPy, SciPy, Rasterio, GDAL, scikit-image, GeoPandas, Shapely
 
-### V1 (prévu)
-- Backend avec FastAPI
-- Frontend avec Vite + React + Leaflet + TailwindCSS + Recharts
-- PostgreSQL + PostGIS, Redis, Docker
-- Deploiement ghpages + backend API
+**Frontend** : Vite, React, MapLibreGL, TailwindCSS
+
+**Donnees** : IGN Lidar HD MNT, RGI 7.0, ESA WorldCover 10 m, MapTiler
 
 ## Structure du projet
 
 ```
 AlpineRoute/
-├── Phase_00_testsInitiaux/    # scripts de test independants
-├── frontend/                  # app React/Vite
-└── README.md
+├── backend/
+│   └── alpineroute/
+│       ├── config.py          # constantes et paramètres
+│       ├── utils.py           # fonctions partagées
+│       ├── dem/               # téléchargement DEM, analyse terrain
+│       ├── cost/              # surface de cout, landcover
+│       ├── routing/           # pathfinding, export GPX/GeoJSON
+│       ├── api/               # FastAPI endpoints
+│       └── db/                # SQLite schema + CRUD
+├── frontend/                  # app React
+├── Phase_00_testsInitiaux/    # scripts de tests basiques
+├── docs/                      # documentation du projet
+├── docker/                    # Dockerfile backend
+└── docker-compose.yml         # lancement local (backend + frontend)
 ```
+
+## Installation
+
+Le plus simple avec Docker :
+
+```bash
+git clone https://github.com/Samuellct/AlpineRoute.git
+cd AlpineRoute
+docker compose up --build
+```
+
+Frontend sur http://localhost:3000, API sur http://localhost:8000/docs.
+
+Pour l'installation locale (conda + npm), voir le [guide d'installation complet](docs/installation.md).
+
+## Utilisation
+
+```bash
+# avec Docker
+docker compose up
+
+# ou en local (deux terminaux)
+# Terminal 1 : backend
+conda activate alpineroute
+uvicorn backend.alpineroute.api.main:app --reload --port 8000
+
+# Terminal 2 : frontend
+cd frontend
+npm run dev
+```
+
+## Données et licences
+
+| Source | Resolution | Couverture | Licence |
+|--------|-----------|------------|---------|
+| IGN Lidar HD MNT | 50 cm | France métropolitaine | Etalab 2.0 |
+| MapTiler | ~10 m | Mondial | Api free tier|
+| RGI 7.0 | Contours vectoriels | Mondial | CC-BY 4.0 |
+| ESA WorldCover v200 | 10 m | Mondial | CC-BY 4.0 |
+
+## Statut du projet
+
+V1 du projet entièrement fonctionnel en local. Plsieurs correctifs déjà prévus pour la V1.1 (ajouts de calques, bugs interface web).
+
+Voir les details dans la [documentation technique](docs/README.md).
 
 ## Licence
 
-Ce projet utilise une licence [MIT](LICENSE).
-
-Les données externes utilisées sont soumises a leurs licences respectives :
-- MNT IGN Lidar HD : Licence Ouverte Etalab 2.0
-- RGI 7.0 : CC-BY 4.0
-- ESA WorldCover : CC-BY 4.0
-- CampToCamp : CC-BY-SA
-- OpenStreetMap : ODbL
+[MIT](LICENSE)
