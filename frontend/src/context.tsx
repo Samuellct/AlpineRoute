@@ -36,7 +36,7 @@ const defaultParams: RouteParams = {
   month: 7,
   acclimatized: true,
   n_alternatives: 0,
-  anisotropic: true,
+  anisotropic: false,
 }
 
 const initialState: AppState = {

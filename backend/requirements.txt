@@ -1,5 +1,4 @@
 # geospatial
-# nota: sur windows, installer via conda-forge. En docker (linux), pip suffit
 # pas besoin de gdal separement, rasterio PyPI embarque ses propres bindings
 numpy>=1.26
 scipy>=1.12
@@ -17,8 +16,9 @@ uvicorn[standard]>=0.27
 httpx>=0.27
 pydantic>=2.6
 
-# viz / terrain
+# terrain
 matplotlib>=3.8
 
 # export
 gpxpy>=1.6
+Pillow>=10.0
