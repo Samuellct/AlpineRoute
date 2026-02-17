@@ -14,6 +14,7 @@ function buildBody(start: MarkerPoint, end: MarkerPoint, params: RouteParams) {
     month: params.month,
     acclimatized: params.acclimatized,
     n_alternatives: params.n_alternatives,
+    anisotropic: params.anisotropic,
   }
 }
 
@@ -140,4 +141,38 @@ export async function createZone(payload: ZoneCreatePayload): Promise<{ id: numb
 export async function deleteZone(id: number): Promise<void> {
   const resp = await fetch(`/api/zones/${id}`, { method: 'DELETE' })
   if (!resp.ok) throw new Error(`Erreur ${resp.status}`)
+}
+
+
+// =====================================================
+//  Overlays (glaciers, cost surface)
+// =====================================================
+
+export async function fetchGlaciers(bbox: string): Promise<GeoJSON.FeatureCollection> {
+  const resp = await fetch(`/api/glaciers?bbox=${bbox}`)
+  if (!resp.ok) throw new Error(`Erreur ${resp.status}`)
+  return resp.json()
+}
+
+export interface CostSurfaceData {
+  imageUrl: string
+  bounds: [[number, number], [number, number]]  // [[sw_lng, sw_lat], [ne_lng, ne_lat]]
+}
+
+export async function fetchCostSurface(): Promise<CostSurfaceData> {
+  const resp = await fetch('/api/cost-surface')
+  if (!resp.ok) throw new Error(`Erreur ${resp.status}`)
+
+  const south = parseFloat(resp.headers.get('X-Bounds-South') || '0')
+  const north = parseFloat(resp.headers.get('X-Bounds-North') || '0')
+  const west = parseFloat(resp.headers.get('X-Bounds-West') || '0')
+  const east = parseFloat(resp.headers.get('X-Bounds-East') || '0')
+
+  const blob = await resp.blob()
+  const imageUrl = URL.createObjectURL(blob)
+
+  return {
+    imageUrl,
+    bounds: [[west, south], [east, north]],
+  }
 }

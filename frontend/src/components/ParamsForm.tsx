@@ -21,7 +21,7 @@ export default function ParamsForm() {
     <div className="flex flex-col gap-3 text-sm">
       {/* coords */}
       <div>
-        <label className="text-gray-400 text-xs">Depart</label>
+        <label className="text-gray-400 text-xs">Départ</label>
         <div className="text-white">
           {state.startPoint
             ? formatCoord(state.startPoint.lng, state.startPoint.lat)
@@ -29,7 +29,7 @@ export default function ParamsForm() {
         </div>
       </div>
       <div>
-        <label className="text-gray-400 text-xs">Arrivee</label>
+        <label className="text-gray-400 text-xs">Arrivée</label>
         <div className="text-white">
           {state.endPoint
             ? formatCoord(state.endPoint.lng, state.endPoint.lat)
@@ -39,7 +39,7 @@ export default function ParamsForm() {
 
       {/* resolution */}
       <div>
-        <label className="text-gray-400 text-xs">Resolution DEM (m)</label>
+        <label className="text-gray-400 text-xs">Resolution Lidar MNT (m)</label>
         <select
           value={state.params.resolution}
           onChange={e => dispatch({
@@ -85,6 +85,22 @@ export default function ParamsForm() {
         </select>
       </div>
 
+      {/* mode précis (anisotrope) */}
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={state.params.anisotropic}
+          onChange={e => dispatch({
+            type: 'SET_PARAMS', params: { anisotropic: e.target.checked },
+          })}
+          className="accent-green-500"
+        />
+        <span className="flex flex-col">
+          <span>Mode precis</span>
+          <span className="text-[10px] text-gray-500">Dijkstra anisotrope</span>
+        </span>
+      </label>
+
       {/* acclimatation */}
       <label className="flex items-center gap-2 cursor-pointer">
         <input
@@ -106,7 +122,7 @@ export default function ParamsForm() {
           onChange={() => dispatch({ type: 'TOGGLE_3D' })}
           className="accent-green-500"
         />
-        <span>Terrain 3D</span>
+        <span>Relief 3D</span>
       </label>
 
       {/* reset */}
@@ -114,7 +130,7 @@ export default function ParamsForm() {
         onClick={reset}
         className="text-xs text-gray-400 hover:text-white underline cursor-pointer self-start"
       >
-        Reinitialiser
+        Reset
       </button>
     </div>
   )

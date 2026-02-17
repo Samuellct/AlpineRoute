@@ -5,10 +5,11 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { TerraDraw, TerraDrawPolygonMode } from 'terra-draw'
 import { TerraDrawMapLibreGLAdapter } from 'terra-draw-maplibre-gl-adapter'
 import { useApp } from '../context'
+import { fetchGlaciers, fetchCostSurface } from '../api'
 import type { BasemapId, OverlayId, Coord3D, RouteFeature, ZoneType } from '../types'
 import BasemapSelector from './BasemapSelector'
 
-// centre Chamonix par defaut
+// position par defaut
 const CENTER: [number, number] = [6.87, 45.88]
 const ZOOM = 13
 
@@ -23,8 +24,8 @@ const BASEMAP_URLS: Record<BasemapId, string> = {
   'satellite-global': `https://api.maptiler.com/maps/satellite/256/{z}/{x}/{y}.jpg?key=${MT_KEY}`,
 }
 
-// URLs overlays (calques cumulables)
-const OVERLAY_URLS: Record<OverlayId, string> = {
+// URLs calques (glaciers et cout gerés via API)
+const OVERLAY_URLS: Record<string, string> = {
   slopes: 'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.SLOPES.MOUNTAIN&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}',
   hillshade: `https://api.maptiler.com/tiles/hillshade/{z}/{x}/{y}.png?key=${MT_KEY}`,
 }
@@ -56,7 +57,7 @@ function altitudeColorStops(coords: Coord3D[]): [number, string][] {
   }
   if (totalDist === 0) return [[0, '#22c55e'], [1, '#22c55e']]
 
-  // sous-echantillonner a ~100 stops max pour perf
+  // sous-echantillonner a 100 stops max pour perf
   const maxStops = 100
   const step = Math.max(1, Math.floor(coords.length / maxStops))
 
@@ -261,7 +262,7 @@ export default function RouteMap() {
         },
       })
 
-      // clic sur route alternative -> selectioner
+      // clic sur route alternative
       map.on('click', 'alt-routes-line', (e) => {
         if (!e.features?.length) return
         const props = e.features[0].properties
@@ -298,7 +299,7 @@ export default function RouteMap() {
     }
   }, [state.basemap])
 
-  // -- terrain 3D toggle --
+  // -- terrain 3D --
   useEffect(() => {
     const map = mapRef.current
     if (!map || !map.isStyleLoaded()) return
@@ -311,14 +312,14 @@ export default function RouteMap() {
     }
   }, [state.is3D])
 
-  // -- overlays (calques cumulables par dessus le basemap) --
+  // -- calques --
   useEffect(() => {
     const map = mapRef.current
     if (!map || !map.isStyleLoaded()) return
 
-    const allOverlays: OverlayId[] = ['slopes', 'hillshade']
+    const tileOverlays: OverlayId[] = ['slopes', 'hillshade']
 
-    for (const oid of allOverlays) {
+    for (const oid of tileOverlays) {
       const srcId = `overlay-${oid}`
       const layerId = `overlay-${oid}-layer`
       const active = state.activeOverlays.includes(oid)
@@ -333,7 +334,6 @@ export default function RouteMap() {
           })
         }
         if (!map.getLayer(layerId)) {
-          // inserer sous les routes pour pas masquer le trace
           const beforeLayer = map.getLayer('alt-routes-halo') ? 'alt-routes-halo' : undefined
           map.addLayer({
             id: layerId,
@@ -348,6 +348,138 @@ export default function RouteMap() {
       }
     }
   }, [state.activeOverlays])
+
+  // -- calques glaciers (GeoJSON) --
+  const glacierTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !map.isStyleLoaded()) return
+
+    const active = state.activeOverlays.includes('glaciers')
+    const srcId = 'overlay-glaciers'
+    const fillId = 'overlay-glaciers-fill'
+    const lineId = 'overlay-glaciers-line'
+
+    if (!active) {
+      if (map.getLayer(fillId)) map.removeLayer(fillId)
+      if (map.getLayer(lineId)) map.removeLayer(lineId)
+      if (map.getSource(srcId)) map.removeSource(srcId)
+      return
+    }
+
+    // init source vide
+    if (!map.getSource(srcId)) {
+      map.addSource(srcId, {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      })
+    }
+    if (!map.getLayer(fillId)) {
+      const before = map.getLayer('alt-routes-halo') ? 'alt-routes-halo' : undefined
+      map.addLayer({
+        id: fillId,
+        type: 'fill',
+        source: srcId,
+        paint: { 'fill-color': '#60a5fa', 'fill-opacity': 0.3 },
+      }, before)
+    }
+    if (!map.getLayer(lineId)) {
+      map.addLayer({
+        id: lineId,
+        type: 'line',
+        source: srcId,
+        paint: { 'line-color': '#3b82f6', 'line-width': 1.5, 'line-opacity': 0.7 },
+      })
+    }
+
+    // charger les glaciers pour la vue courante
+    const loadGlaciers = () => {
+      const bounds = map.getBounds()
+      const bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`
+      fetchGlaciers(bbox)
+        .then(geojson => {
+          const src = map.getSource(srcId) as maplibregl.GeoJSONSource | undefined
+          if (src) src.setData(geojson as any)
+        })
+        .catch(err => console.warn('glaciers fetch fail:', err))
+    }
+
+    loadGlaciers()
+
+    // refresh sur moveend (debounce)
+    const onMove = () => {
+      if (glacierTimerRef.current) clearTimeout(glacierTimerRef.current)
+      glacierTimerRef.current = setTimeout(loadGlaciers, 500)
+    }
+    map.on('moveend', onMove)
+
+    return () => {
+      map.off('moveend', onMove)
+      if (glacierTimerRef.current) clearTimeout(glacierTimerRef.current)
+    }
+  }, [state.activeOverlays])
+
+  // -- calques surface de cout (image PNG) --
+  const costUrlRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !map.isStyleLoaded()) return
+
+    const active = state.activeOverlays.includes('cost')
+    const srcId = 'overlay-cost'
+    const layerId = 'overlay-cost-layer'
+
+    if (!active || !state.routeResult) {
+      if (map.getLayer(layerId)) map.removeLayer(layerId)
+      if (map.getSource(srcId)) map.removeSource(srcId)
+      if (costUrlRef.current) {
+        URL.revokeObjectURL(costUrlRef.current)
+        costUrlRef.current = null
+      }
+      return
+    }
+
+    // fetch le PNG
+    fetchCostSurface()
+      .then(data => {
+        if (costUrlRef.current) URL.revokeObjectURL(costUrlRef.current)
+        costUrlRef.current = data.imageUrl
+
+        // remove ancien layer/source si existe
+        if (map.getLayer(layerId)) map.removeLayer(layerId)
+        if (map.getSource(srcId)) map.removeSource(srcId)
+
+        const [sw, ne] = data.bounds
+        map.addSource(srcId, {
+          type: 'image',
+          url: data.imageUrl,
+          coordinates: [
+            [sw[0], ne[1]],  // top-left
+            [ne[0], ne[1]],  // top-right
+            [ne[0], sw[1]],  // bottom-right
+            [sw[0], sw[1]],  // bottom-left
+          ],
+        })
+
+        const before = map.getLayer('alt-routes-halo') ? 'alt-routes-halo' : undefined
+        map.addLayer({
+          id: layerId,
+          type: 'raster',
+          source: srcId,
+          paint: { 'raster-opacity': 0.6 },
+        }, before)
+      })
+      .catch(err => console.warn('cost surface fetch fail:', err))
+
+    return () => {
+      if (costUrlRef.current) {
+        URL.revokeObjectURL(costUrlRef.current)
+        costUrlRef.current = null
+      }
+    }
+  }, [state.activeOverlays, state.routeResult])
 
   // helper pour creer/deplacer un marker
   const upsertMarker = useCallback((
