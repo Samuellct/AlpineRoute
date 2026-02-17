@@ -1,4 +1,4 @@
-// selecteur fond de carte + overlays -- bottom-right
+// selecteur fond de carte + calques
 import { useApp } from '../context'
 import type { BasemapId, OverlayId } from '../types'
 
@@ -13,6 +13,8 @@ const basemaps: { id: BasemapId; label: string }[] = [
 const overlays: { id: OverlayId; label: string }[] = [
   { id: 'slopes', label: 'Pentes' },
   { id: 'hillshade', label: 'Hillshade' },
+  { id: 'glaciers', label: 'Glaciers' },
+  { id: 'cost', label: 'Cout' },
 ]
 
 export default function BasemapSelector() {
@@ -20,7 +22,7 @@ export default function BasemapSelector() {
 
   return (
     <div className="absolute bottom-6 right-3 flex flex-col gap-2 z-10">
-      {/* overlays (toggles) */}
+      {/* calques */}
       <div className="flex flex-col gap-0.5">
         <span className="text-[10px] text-white/60 uppercase tracking-wider px-1">Calques</span>
         {overlays.map(o => {

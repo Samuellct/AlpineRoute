@@ -1,4 +1,4 @@
-// state global -- context + useReducer
+// state global - context + useReducer
 import { createContext, useContext, useReducer, type ReactNode } from 'react'
 import type {
   MarkerPoint, RouteParams, RouteResult,
@@ -19,16 +19,12 @@ export interface AppState {
   basemap: BasemapId
   sidebarOpen: boolean
   is3D: boolean
-  // routes alternatives
-  selectedRouteIndex: number
-  // tabs sidebar
+  selectedRouteIndex: number // routes alternatives
   activeTab: SidebarTab
-  // historique
   historyRoutes: RouteSummary[]
   historyLoading: boolean
   loadedHistoryRoute: RouteDetail | null
-  // zones
-  zones: UserZone[]
+  zones: UserZone[] //fonctionnemnt bof bof a delete pour la v2
   drawingMode: boolean
   pendingZoneGeojson: object | null
   zoneFormOpen: boolean
@@ -40,6 +36,7 @@ const defaultParams: RouteParams = {
   month: 7,
   acclimatized: true,
   n_alternatives: 0,
+  anisotropic: true,
 }
 
 const initialState: AppState = {

@@ -46,6 +46,7 @@ export interface RouteParams {
   month: number
   acclimatized: boolean
   n_alternatives: number
+  anisotropic: boolean
 }
 
 export interface MarkerPoint {
@@ -55,7 +56,7 @@ export interface MarkerPoint {
 
 export type BasemapId = 'plan' | 'satellite' | 'slopes' | 'topo-global' | 'satellite-global'
 
-export type OverlayId = 'slopes' | 'hillshade'
+export type OverlayId = 'slopes' | 'hillshade' | 'cost' | 'glaciers'
 
 // -- historique --
 
