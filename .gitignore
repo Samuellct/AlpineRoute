@@ -21,6 +21,7 @@ projet.md
 data/
 bugs/
 backend/tests
+Phase_00_testsInitiaux/
 
 # ========== Python ==========
 __pycache__/
