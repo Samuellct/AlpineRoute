@@ -13,7 +13,7 @@ from skimage.morphology import disk
 
 from alpineroute.config import (
     NODATA_VALUE, COST_NODATA_VALUE,
-    PENALTY_MULTIPLIER, PENALTY_BUFFER_PX,
+    PENALTY_MULTIPLIER, PENALTY_BUFFER_PX, PENALTY_BUFFER_M,
     TOBLER_BASE_SPEED_KMH, TOBLER_OPTIMAL_GRADIENT, OFF_TRAIL_FACTOR,
     STEEP_SLOPE_THRESHOLD_DEG, STEEP_SLOPE_MULTIPLIER,
     CRITICAL_SLOPE_DEG, CRITICAL_SLOPE_MULTIPLIER,
@@ -55,13 +55,17 @@ def run_pathfinding(cost, start_rc, end_rc):
     return path_coords, path_cost, dt
 
 
-def _apply_penalty(cost_grid, path_coords, multiplier=None, buffer_px=None):
+def _apply_penalty(cost_grid, path_coords, multiplier=None, buffer_px=None,
+                    resolution=None):
     """Penalise le corridor autour d'un trajet pour forcer des alternatives.
     Modifie cost_grid in-place, ne touche pas aux pixels inf (nodata)."""
     if multiplier is None:
         multiplier = PENALTY_MULTIPLIER
     if buffer_px is None:
         buffer_px = PENALTY_BUFFER_PX
+    # buffer adaptatif: ~PENALTY_BUFFER_M metres, min PENALTY_BUFFER_PX px
+    if resolution is not None and resolution > 0:
+        buffer_px = max(buffer_px, int(PENALTY_BUFFER_M / resolution))
 
     mask = np.zeros(cost_grid.shape, dtype=bool)
     rows, cols = path_coords[:, 0], path_coords[:, 1]
@@ -76,7 +80,8 @@ def _apply_penalty(cost_grid, path_coords, multiplier=None, buffer_px=None):
     cost_grid[valid] *= multiplier
 
 
-def run_pathfinding_alternatives(cost_grid, start_rc, end_rc, n_alt=3):
+def run_pathfinding_alternatives(cost_grid, start_rc, end_rc, n_alt=3,
+                                  resolution=None):
     """Lance le pathfinding optimal + n_alt alternatives via penalty method.
     Retourne [(path_coords, path_cost, elapsed), ...]"""
     results = []
@@ -89,7 +94,7 @@ def run_pathfinding_alternatives(cost_grid, start_rc, end_rc, n_alt=3):
         return results
 
     for i in range(n_alt):
-        _apply_penalty(cost_grid, results[-1][0])
+        _apply_penalty(cost_grid, results[-1][0], resolution=resolution)
         try:
             pc, cost, elapsed = run_pathfinding(cost_grid, start_rc, end_rc)
         except Exception as e:
@@ -258,12 +263,14 @@ def dijkstra_anisotropic(dem, base_cost, start_rc, end_rc, resolution):
 
 
 def _apply_penalty_sparse(w_arr, src_arr, dst_arr, path_coords, W,
-                          multiplier=None, buffer_px=None):
+                          multiplier=None, buffer_px=None, resolution=None):
     """Penalise les aretes du corridor. Retourne un nouveau w_arr."""
     if multiplier is None:
         multiplier = PENALTY_MULTIPLIER
     if buffer_px is None:
         buffer_px = PENALTY_BUFFER_PX
+    if resolution is not None and resolution > 0:
+        buffer_px = max(buffer_px, int(PENALTY_BUFFER_M / resolution))
 
     H = int(src_arr.max() // W) + 2  # approximation hauteur grille
     mask = np.zeros(H * W, dtype=bool)
@@ -317,7 +324,8 @@ def run_aniso_alternatives(dem, base_cost, start_rc, end_rc,
     current_w = w_arr
     for i in range(n_alt):
         current_w = _apply_penalty_sparse(
-            current_w, src_arr, dst_arr, results[-1][0], W)
+            current_w, src_arr, dst_arr, results[-1][0], W,
+            resolution=resolution)
         penalized = csr_matrix((current_w, (src_arr, dst_arr)), shape=(N, N))
 
         try:

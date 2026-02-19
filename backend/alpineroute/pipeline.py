@@ -198,7 +198,8 @@ def run_pipeline(req, progress_callback=None):
 
     # -- 4. worldcover (optionnel)
     _progress(progress_callback, "worldcover", 0)
-    landcover = get_landcover_cost(bbox_wgs84, bbox_l93, dem.shape)
+    landcover = get_landcover_cost(bbox_wgs84, bbox_l93, dem.shape,
+                                    dst_transform=transform)
     _progress(progress_callback, "worldcover", 1.0)
 
     # -- 5. glacier (optionnel)
@@ -291,7 +292,8 @@ def run_pipeline(req, progress_callback=None):
         cost_grid = prepare_cost_grid(cost_for_display)
         if req.n_alternatives > 0:
             all_results = run_pathfinding_alternatives(
-                cost_grid, start_rc, end_rc, n_alt=req.n_alternatives)
+                cost_grid, start_rc, end_rc, n_alt=req.n_alternatives,
+                resolution=req.resolution)
         else:
             pc, pc_cost, dt = run_pathfinding(cost_grid, start_rc, end_rc)
             all_results = [(pc, pc_cost, dt)]

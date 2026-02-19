@@ -122,7 +122,8 @@ MAX_ROUTE_POINTS_API = 5000  # sous-echantillonnage si plus
 # ---- routes alternatives (penalty method) ----
 N_ALTERNATIVE_ROUTES = 3
 PENALTY_MULTIPLIER = 5.0
-PENALTY_BUFFER_PX = 15
+PENALTY_BUFFER_PX = 15          # minimum garanti en px
+PENALTY_BUFFER_M = 50           # buffer minimum en m
 MAX_ALTERNATIVE_ROUTES = 5
 
 # ---- zones utilisateur ----

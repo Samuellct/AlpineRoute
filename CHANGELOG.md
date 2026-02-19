@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1] - 2026-02-19
+
+### Fixed
+- Buffer routes alternatives en mètres (50m minimum qq soit la resolution)
+- Alignement raster WorldCover via rasterio.warp au lieu de scipy.ndimage.zoom
+- Doc : endpoint /glaciers et /cost-surface documentés
+
 ## [1.0.0] - 2026-02-19
 
 Première version fonctionnelle en local.

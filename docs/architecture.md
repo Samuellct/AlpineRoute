@@ -34,7 +34,7 @@ Le code backend est dans `backend/alpineroute/` :
 | `cost/landcover` | `cost/landcover.py` | Integration WorldCover ESA : lecture /vsicurl/, reprojection L93, multiplicateurs par classe. |
 | `routing/pathfinding` | `routing/pathfinding.py` | Preparation de la grille (nodata -> inf) et lancement de `skimage.graph.route_through_array`. |
 | `routing/export` | `routing/export.py` | Export GPX (gpxpy) et GeoJSON 3D, simplification Douglas-Peucker. |
-| `api/main` | `api/main.py` | App FastAPI : endpoints /health, /info, /calculate, /calculate-async, /progress/{job_id} (SSE). |
+| `api/main` | `api/main.py` | App FastAPI : endpoints /health, /calculate, /calculate-async, /progress/{job_id} (SSE), /glaciers, /cost-surface. |
 | `api/models` | `api/models.py` | Schemas Pydantic (RouteRequest, HealthResponse). |
 | `db/schema` | `db/schema.py` | Schema SQLite : tables routes, user_zones, dem_cache, preferences. |
 | `db/crud` | `db/crud.py` | Operations CRUD : sauvegarde de routes, gestion cache DEM. |

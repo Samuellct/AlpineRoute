@@ -345,6 +345,60 @@ Supprime une zone.
 
 ---
 
+### GET /glaciers
+
+Retourne les contours glaciaires RGI dans une bounding box.
+
+**Query params** :
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `bbox` | string (requis) | `xmin,ymin,xmax,ymax` en WGS84 |
+
+**Réponse** :
+```json
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {"type": "Polygon", "coordinates": [...]},
+      "properties": {"glac_name": "Mer de Glace", "area_km2": 30.4}
+    }
+  ]
+}
+```
+
+**Erreurs** :
+- 400 : bbox invalide (format incorrect, valeurs hors limites)
+- 500 : erreur interne
+
+**Exemple** :
+```bash
+curl "http://localhost:8000/glaciers?bbox=6.85,45.85,6.95,45.92"
+```
+
+---
+
+### GET /cost-surface
+
+Retourne la derniere surface de cout calculee sous forme d'image PNG.
+
+**Query params** : aucun
+
+**Réponse** : image PNG (RGBA, echelle log vert->rouge). Headers custom :
+- `X-Bounds-South` / `X-Bounds-North` / `X-Bounds-West` / `X-Bounds-East` : emprise WGS84
+
+**Erreurs** :
+- 404 : aucun calcul precedent (pas de surface en cache)
+
+**Exemple** :
+```bash
+curl -o cost.png http://localhost:8000/cost-surface
+```
+
+---
+
 ## Modèles
 
 ### RouteRequest

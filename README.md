@@ -5,7 +5,7 @@ Calcul d'itinéraires optimaux pour l'alpinisme hors-piste dans les Alpes (Franc
 ## Fonctionnalités
 
 - Téléchargement automatique des données MNT IGN Lidar HD (50 cm natif, échantillonnage 0.5 - 10 m pour le projet)
-- Fallback MapTiler pour les zones non couvertes par le lidar
+- Fallback Copernicus GLO-30 pour les zones hors France
 - Calcul de pente, orientation et rugosité via Horn's method (scipy)
 - Fonction de cout multi-critères : pente, altitude, aspect/saison, glacier, rugosité, couverture du sol
 - Intégration des contours glaciaires RGI 7.0 et du landcover ESA WorldCover 10 m
@@ -19,7 +19,7 @@ Calcul d'itinéraires optimaux pour l'alpinisme hors-piste dans les Alpes (Franc
 
 **Frontend** : Vite, React, MapLibreGL, TailwindCSS
 
-**Donnees** : IGN Lidar HD MNT, RGI 7.0, ESA WorldCover 10 m, MapTiler
+**Donnees** : IGN Lidar HD MNT, RGI 7.0, ESA WorldCover 10 m, Copernicus GLO-30
 
 ## Structure du projet
 
@@ -75,13 +75,13 @@ npm run dev
 | Source | Resolution | Couverture | Licence |
 |--------|-----------|------------|---------|
 | IGN Lidar HD MNT | 50 cm | France métropolitaine | Etalab 2.0 |
-| MapTiler | ~10 m | Mondial | Api free tier|
+| Copernicus GLO-30 | ~30 m | Mondial | Libre |
 | RGI 7.0 | Contours vectoriels | Mondial | CC-BY 4.0 |
 | ESA WorldCover v200 | 10 m | Mondial | CC-BY 4.0 |
 
 ## Statut du projet
 
-V1 du projet entièrement fonctionnel en local. Plsieurs correctifs déjà prévus pour la V1.1 (ajouts de calques, bugs interface web).
+V1 du projet fonctionnelle, plsieurs correctifs déjà prévus.
 
 Voir les details dans la [documentation technique](docs/README.md).
 

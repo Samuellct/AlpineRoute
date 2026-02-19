@@ -5,7 +5,6 @@ import numpy as np
 import rasterio
 from rasterio.warp import reproject, Resampling, calculate_default_transform
 from rasterio.windows import from_bounds
-from scipy.ndimage import zoom
 
 from alpineroute.config import (
     CRS_L93, CRS_WGS84, WORLDCOVER_MULTIPLIERS, WORLDCOVER_URL_PATTERN,
@@ -75,7 +74,7 @@ def reproject_worldcover_l93(data, src_transform, src_crs, bbox_l93, bbox_wgs84)
     )
 
     logger.info("WorldCover L93: %dx%d @ %dm", width, height, dst_res)
-    return dst
+    return dst, dst_transform
 
 
 def build_landcover_cost(lc_data):
@@ -88,30 +87,38 @@ def build_landcover_cost(lc_data):
 
 # -- fonctions ajoutees pour le pipeline integre --
 
-def resample_to_grid(lc_cost, target_shape):
-    """Resample la grille landcover (10m) vers la shape du DEM.
-    Nearest-neighbor (order=0) pour garder les valeurs discretes."""
+def resample_to_grid(lc_cost, target_shape, src_transform=None,
+                     dst_transform=None):
+    """Resample la grille landcover vers la grille DEM avec alignement spatial.
+    Utilise rasterio.warp.reproject pour un calage geospatial exact."""
     if lc_cost.shape == target_shape:
         return lc_cost
 
-    zoom_y = target_shape[0] / lc_cost.shape[0]
-    zoom_x = target_shape[1] / lc_cost.shape[1]
-    resampled = zoom(lc_cost, (zoom_y, zoom_x), order=0)
+    dst = np.ones(target_shape, dtype=lc_cost.dtype)
+    reproject(
+        source=lc_cost,
+        destination=dst,
+        src_transform=src_transform,
+        src_crs=CRS_L93,
+        dst_transform=dst_transform,
+        dst_crs=CRS_L93,
+        resampling=Resampling.nearest,
+    )
+    return dst
 
-    # clip si le zoom donne un px de trop (arrondi)
-    resampled = resampled[:target_shape[0], :target_shape[1]]
-    return resampled
 
-
-def get_landcover_cost(bbox_wgs84, bbox_l93, target_shape):
+def get_landcover_cost(bbox_wgs84, bbox_l93, target_shape, dst_transform=None):
     """Pipeline complet WorldCover: load -> reproject -> cost -> resample.
+    dst_transform: transform de la grille DEM cible (pour alignement spatial).
     Retourne None si echec (non bloquant)."""
     try:
         data, src_transform, src_crs = load_worldcover_windowed(bbox_wgs84)
-        lc_l93 = reproject_worldcover_l93(data, src_transform, src_crs,
-                                           bbox_l93, bbox_wgs84)
+        lc_l93, lc_transform = reproject_worldcover_l93(
+            data, src_transform, src_crs, bbox_l93, bbox_wgs84)
         lc_cost = build_landcover_cost(lc_l93)
-        resampled = resample_to_grid(lc_cost, target_shape)
+        resampled = resample_to_grid(lc_cost, target_shape,
+                                     src_transform=lc_transform,
+                                     dst_transform=dst_transform)
         logger.info("landcover cost ready: %s", resampled.shape)
         return resampled
 
