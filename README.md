@@ -35,7 +35,6 @@ AlpineRoute/
 │       ├── api/               # FastAPI endpoints
 │       └── db/                # SQLite schema + CRUD
 ├── frontend/                  # app React
-├── Phase_00_testsInitiaux/    # scripts de tests basiques
 ├── docs/                      # documentation du projet
 ├── docker/                    # Dockerfile backend
 └── docker-compose.yml         # lancement local (backend + frontend)

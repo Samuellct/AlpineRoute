@@ -4,7 +4,6 @@ CLAUDE_BASH_FIX.md
 .claude/
 Rapports_markdown/
 projet.md
-Phase_00_testsInitiaux/README.md
 
 # ========== Data ==========
 *.tif
@@ -20,9 +19,6 @@ Phase_00_testsInitiaux/README.md
 *.las
 *.jp2
 data/
-Phase_00_testsInitiaux/data/
-Phase_00_testsInitiaux/output/figures/uhd
-# Phase_00_testsInitiaux/output/ # a voir si le dossier devient trop lourd
 bugs/
 backend/tests
 

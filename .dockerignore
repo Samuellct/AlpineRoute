@@ -23,9 +23,6 @@ __pycache__/
 .venv/
 venv/
 
-# test scripts
-Phase_00_testsInitiaux/
-
 # docs / internal
 Rapports_markdown/
 .claude/
