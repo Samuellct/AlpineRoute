@@ -111,6 +111,9 @@ VALID_LAT_RANGE = (43.0, 48.0)   # Alpes grosso modo
 VALID_LON_RANGE = (4.0, 16.0)
 VALID_RESOLUTIONS = (0.5, 1.0, 2.0, 5.0, 10.0)
 MAX_GRID_PIXELS = 200_000_000    # garde-fou memoire
+MAX_GRID_PIXELS_ANISO = int(os.environ.get(
+    "ALPINEROUTE_MAX_GRID_ANISO", 50_000_000
+))  # aniso gourmand en RAM, surcharger si machine costaud
 
 # ---- pathfinding ----
 COST_NODATA_VALUE = 1e6     # cap pour eviter overflow
