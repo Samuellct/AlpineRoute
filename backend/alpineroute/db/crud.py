@@ -8,9 +8,7 @@ from alpineroute.db.schema import get_connection
 logger = logging.getLogger(__name__)
 
 
-# =====================================================
-#  Routes
-# =====================================================
+# ---- Routes ----
 
 def save_route(db_path, route_data):
     """Insere une route calculee, retourne l'ID."""
@@ -48,7 +46,6 @@ def save_route(db_path, route_data):
 
 
 def get_route(db_path, route_id):
-    """Recupere une route par ID. Retourne dict ou None."""
     conn = get_connection(db_path)
     try:
         conn.row_factory = _dict_factory
@@ -119,7 +116,6 @@ def list_routes(db_path, bbox=None, date_from=None, date_to=None,
 
 
 def delete_route(db_path, route_id):
-    """Supprime une route par ID. Retourne True si supprimee."""
     conn = get_connection(db_path)
     try:
         cur = conn.execute("DELETE FROM routes WHERE id = ?", (route_id,))
@@ -129,12 +125,9 @@ def delete_route(db_path, route_id):
         conn.close()
 
 
-# =====================================================
-#  Zones utilisateur
-# =====================================================
+# -- zones --
 
 def save_zone(db_path, zone_data):
-    """Insere une zone, retourne l'ID."""
     conn = get_connection(db_path)
     try:
         geojson_str = zone_data.get("geojson")
@@ -161,7 +154,7 @@ def save_zone(db_path, zone_data):
 
 
 def list_zones(db_path, zone_type=None, active_only=False):
-    """Liste les zones avec filtres optionnels."""
+    """Filtre par type et/ou actives."""
     conn = get_connection(db_path)
     try:
         conn.row_factory = _dict_factory
@@ -197,7 +190,6 @@ def list_zones(db_path, zone_type=None, active_only=False):
 
 
 def get_zone(db_path, zone_id):
-    """Recupere une zone par ID."""
     conn = get_connection(db_path)
     try:
         conn.row_factory = _dict_factory
@@ -241,7 +233,6 @@ def update_zone(db_path, zone_id, updates):
 
 
 def delete_zone(db_path, zone_id):
-    """Supprime une zone par ID."""
     conn = get_connection(db_path)
     try:
         cur = conn.execute("DELETE FROM user_zones WHERE id = ?", (zone_id,))
@@ -251,9 +242,7 @@ def delete_zone(db_path, zone_id):
         conn.close()
 
 
-# =====================================================
-#  Cache DEM (inchange)
-# =====================================================
+# cache DEM
 
 def register_cached_tile(db_path, source, tile_name, bbox, resolution, file_path, file_size):
     """Enregistre une tuile DEM dans le cache."""
@@ -272,7 +261,6 @@ def register_cached_tile(db_path, source, tile_name, bbox, resolution, file_path
 
 
 def get_cached_tiles(db_path, source, resolution):
-    """Liste les tuiles en cache."""
     conn = get_connection(db_path)
     try:
         rows = conn.execute(
@@ -284,10 +272,6 @@ def get_cached_tiles(db_path, source, resolution):
         conn.close()
 
 
-# =====================================================
-#  Helpers
-# =====================================================
-
+# row factory -> dict
 def _dict_factory(cursor, row):
-    """Row factory pour retourner des dicts au lieu de tuples."""
     return {col[0]: row[i] for i, col in enumerate(cursor.description)}

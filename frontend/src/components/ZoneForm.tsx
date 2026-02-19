@@ -1,4 +1,3 @@
-// modal creation zone -- apres dessin du polygone
 import { useState } from 'react'
 import { useApp } from '../context'
 import { createZone } from '../api'

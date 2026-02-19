@@ -1,4 +1,4 @@
-// selecteur fond de carte + calques
+// basemap + overlays
 import { useApp } from '../context'
 import type { BasemapId, OverlayId } from '../types'
 

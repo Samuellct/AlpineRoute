@@ -203,7 +203,7 @@ def _build_aniso_graph(dem, base_cost, resolution):
     return graph, src_arr, dst_arr, w_arr
 
 
-def _traceback_path(predecessors, start_flat, end_flat, W):
+def _rebuild_path(predecessors, start_flat, end_flat, W):
     """Reconstruit le chemin (row, col) a partir du tableau de predecesseurs."""
     path = []
     cur = end_flat
@@ -245,7 +245,7 @@ def dijkstra_anisotropic(dem, base_cost, start_rc, end_rc, resolution):
     )
     t_dijk = time.time() - t1
 
-    path_coords = _traceback_path(pred, start_flat, end_flat, W)
+    path_coords = _rebuild_path(pred, start_flat, end_flat, W)
     total_cost = dist[end_flat]
     dt = time.time() - t0
 
@@ -307,7 +307,7 @@ def run_aniso_alternatives(dem, base_cost, start_rc, end_rc,
     t1 = time.time()
     dist, pred = sp_dijkstra(graph, directed=True, indices=start_flat,
                              return_predecessors=True)
-    path_coords = _traceback_path(pred, start_flat, end_flat, W)
+    path_coords = _rebuild_path(pred, start_flat, end_flat, W)
     dt = time.time() - t1
 
     if len(path_coords) == 0:
@@ -329,7 +329,7 @@ def run_aniso_alternatives(dem, base_cost, start_rc, end_rc,
             dist_p, pred_p = sp_dijkstra(
                 penalized, directed=True, indices=start_flat,
                 return_predecessors=True)
-            pc = _traceback_path(pred_p, start_flat, end_flat, W)
+            pc = _rebuild_path(pred_p, start_flat, end_flat, W)
             dt_p = time.time() - t1
         except Exception as e:
             logger.warning("aniso alt %d failed: %s", i + 1, e)

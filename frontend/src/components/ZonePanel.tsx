@@ -1,4 +1,4 @@
-// panneau zones de danger -- dans le tab calcul
+/* zones de danger dans l'onglet calcul*/
 import { useEffect } from 'react'
 import { useApp } from '../context'
 import { fetchZones, deleteZone } from '../api'

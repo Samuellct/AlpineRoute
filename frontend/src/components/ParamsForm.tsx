@@ -1,4 +1,3 @@
-// formulaire parametres route
 import { useApp } from '../context'
 
 const MONTHS = [

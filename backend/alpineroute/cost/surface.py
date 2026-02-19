@@ -106,9 +106,7 @@ def compute_roughness_cost(roughness):
     return (1.0 + ROUGHNESS_SCALE * r).astype(np.float32)
 
 
-# =====================================================
-#  Assemblage
-# =====================================================
+# --- assemblage final ---
 
 def build_cost_surface(dem, slope, aspect, roughness, glacier_mask,
                        month=7, acclimatized=True, landcover_cost=None):

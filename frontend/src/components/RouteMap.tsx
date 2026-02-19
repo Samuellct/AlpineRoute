@@ -1,4 +1,4 @@
-// carte MapLibre -- basemap IGN/MapTiler, markers, route, alternatives, terrain 3D
+// carte principale
 import { useEffect, useRef, useCallback } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'

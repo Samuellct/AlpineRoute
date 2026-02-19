@@ -1,4 +1,4 @@
-// bouton calcul + progress bar SSE
+// bouton calcul + progress bar
 import { useRef } from 'react'
 import { useApp } from '../context'
 import { calculateRouteAsync, subscribeProgress } from '../api'

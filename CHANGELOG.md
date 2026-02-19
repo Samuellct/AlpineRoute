@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.2] - 2026-02-19
+
+### Changed
+- Nettoyage des commentaires python
+- Ajouts de quelques infos dans la doc
+
 ## [1.0.1] - 2026-02-19
 
 ### Fixed

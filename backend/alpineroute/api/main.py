@@ -36,9 +36,7 @@ logger = logging.getLogger(__name__)
 jobs: dict = {}
 
 
-# =====================================================
-#  App
-# =====================================================
+# --- App ---
 
 @asynccontextmanager
 async def lifespan(app):
@@ -65,9 +63,7 @@ app.add_middleware(
 executor = ThreadPoolExecutor(max_workers=2)
 
 
-# =====================================================
-#  Calculate
-# =====================================================
+# ---- Calculate ----
 
 @app.get("/health")
 async def health():
@@ -154,9 +150,7 @@ async def progress_sse(job_id: str):
     )
 
 
-# =====================================================
-#  Routes CRUD
-# =====================================================
+# Routes CRUD
 
 @app.get("/routes")
 async def api_list_routes(
@@ -261,9 +255,7 @@ async def api_route_gpx(route_id: int):
     )
 
 
-# =====================================================
-#  Calques (overlays)
-# =====================================================
+# --- Calques (overlays) ---
 
 @app.get("/glaciers")
 async def api_glaciers(bbox: str = Query(..., description="xmin,ymin,xmax,ymax en WGS84")):
@@ -397,9 +389,7 @@ async def api_cost_surface():
         raise HTTPException(500, f"erreur cost surface: {e}")
 
 
-# =====================================================
-#  Zones CRUD
-# =====================================================
+# Zones CRUD
 
 @app.get("/zones")
 async def api_list_zones(

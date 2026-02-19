@@ -1,4 +1,3 @@
-// stats route -- grille 2 colonnes
 import { useApp } from '../context'
 import type { RouteFeature } from '../types'
 

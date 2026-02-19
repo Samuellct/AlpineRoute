@@ -15,30 +15,21 @@ from alpineroute.config import (
 )
 
 
-# =====================================================
-#  Exceptions custom
-# =====================================================
+# --- exceptions ---
 
 class DataNotFoundError(FileNotFoundError):
-    """DEM, couche derivee, ou shapefile manquant."""
     pass
 
 class PointOutOfBoundsError(ValueError):
-    """Coordonnees hors de la grille raster."""
     pass
 
 class DownloadError(RuntimeError):
-    """Echec de telechargement (WFS, WMS-R, S3...)."""
     pass
 
 
-# =====================================================
-#  Logging
-# =====================================================
+# --- logging ---
 
 def setup_logging(name=None, level=logging.INFO):
-    """Configure un logger avec un format simple.
-    Appeler au debut de chaque module ou script."""
     logger = logging.getLogger(name)
     if not logger.handlers:
         handler = logging.StreamHandler()
@@ -49,13 +40,10 @@ def setup_logging(name=None, level=logging.INFO):
     return logger
 
 
-# =====================================================
-#  Raster I/O
-# =====================================================
+#--- raster I/O ---
 
 def load_dem(path):
-    """Charge un DEM GeoTIFF. Retourne (data, profile, transform).
-    Toujours avec context manager (fix du leak T06)."""
+    # charge le tif, retourne (array, profile, transform)
     if not os.path.exists(path):
         raise DataNotFoundError(f"DEM introuvable: {path}")
 
@@ -67,7 +55,6 @@ def load_dem(path):
 
 
 def load_raster(path, dtype=np.float32):
-    """Charge un raster mono-bande generique."""
     if not os.path.exists(path):
         raise DataNotFoundError(f"Raster introuvable: {path}")
 
@@ -78,7 +65,6 @@ def load_raster(path, dtype=np.float32):
 
 
 def save_raster(data, path, profile, dtype="float32", nodata=None):
-    """Ecrit un raster mono-bande GeoTIFF avec compression."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
 
     out_profile = profile.copy()
@@ -102,13 +88,8 @@ def save_raster(data, path, profile, dtype="float32", nodata=None):
     return path
 
 
-# =====================================================
-#  Nodata mask
-# =====================================================
-
 def make_nodata_mask(dem, dilate=True):
-    """Masque nodata + dilatation 1px pour exclure les bords.
-    Source: T02."""
+    # masque nodata + dilate 1px (bords)
     mask = (dem == NODATA_VALUE) | np.isnan(dem)
     if dilate:
         struct = np.ones((3, 3), dtype=bool)
@@ -116,14 +97,12 @@ def make_nodata_mask(dem, dilate=True):
     return mask
 
 
-# =====================================================
-#  Coordonnees
-# =====================================================
+# ---- coordonnees ----
 
 # cache des transformers pour eviter de les recreer a chaque appel
 _transformer_cache = {}
 
-def _get_transformer(src_crs, dst_crs):
+def _cached_transformer(src_crs, dst_crs):
     key = (src_crs, dst_crs)
     if key not in _transformer_cache:
         _transformer_cache[key] = Transformer.from_crs(src_crs, dst_crs, always_xy=True)
@@ -131,14 +110,12 @@ def _get_transformer(src_crs, dst_crs):
 
 
 def wgs84_to_l93(lon, lat):
-    """WGS84 (lon, lat) -> L93 (x, y)."""
-    proj = _get_transformer(CRS_WGS84, CRS_L93)
+    proj = _cached_transformer(CRS_WGS84, CRS_L93)
     return proj.transform(lon, lat)
 
 
 def l93_to_wgs84(x, y):
-    """L93 (x, y) -> WGS84 (lon, lat)."""
-    proj = _get_transformer(CRS_L93, CRS_WGS84)
+    proj = _cached_transformer(CRS_L93, CRS_WGS84)
     return proj.transform(x, y)
 
 
@@ -158,24 +135,18 @@ def wgs84_to_pixel(lat, lon, transform, shape):
 
 
 def pixel_to_l93(rows, cols, transform):
-    """Rows/cols pixel -> coords L93 (x_array, y_array)."""
     coords = np.array([transform * (c, r) for r, c in zip(rows, cols)])
     return coords[:, 0], coords[:, 1]
 
 
 def reproject_to_wgs84(coords_l93):
-    """Array Nx2 de coords L93 [x, y] -> array Nx2 WGS84 [lon, lat].
-    Signature unifiee (T06 vs T09 avaient des formats differents)."""
-    proj = _get_transformer(CRS_L93, CRS_WGS84)
+    """Coords L93 [x,y] -> WGS84 [lon,lat]."""
+    proj = _cached_transformer(CRS_L93, CRS_WGS84)
     xs = coords_l93[:, 0]
     ys = coords_l93[:, 1]
     lons, lats = proj.transform(xs, ys)
     return np.column_stack([lons, lats])
 
-
-# =====================================================
-#  Bbox dynamique
-# =====================================================
 
 def compute_bbox(start_wgs84, end_wgs84, margin_m=None, max_size_m=None):
     """Calcule la bbox englobant deux points WGS84 avec marge.
@@ -232,12 +203,8 @@ def compute_bbox(start_wgs84, end_wgs84, margin_m=None, max_size_m=None):
     return {"bbox_l93": bbox_l93, "bbox_wgs84": bbox_wgs84}
 
 
-# =====================================================
-#  Hillshade
-# =====================================================
-
+# hillshade pour le fond de carte
 def make_hillshade(dem, resolution):
-    """Hillshade standard pour fond de carte. Source: T04/T05 copie-colle."""
     dem_display = np.where(dem == NODATA_VALUE, np.nan, dem)
     dem_filled = np.where(np.isnan(dem_display), 0, dem_display)
     ls = LightSource(azdeg=HILLSHADE_AZIMUTH, altdeg=HILLSHADE_ALTITUDE)
@@ -245,12 +212,8 @@ def make_hillshade(dem, resolution):
                         dx=resolution, dy=resolution)
 
 
-# =====================================================
-#  stats de trajet
-# =====================================================
 
 def compute_distance_2d(coords):
-    """Distance 2D totale en metres. coords = array Nx2 en metres (L93)."""
     dx = np.diff(coords[:, 0])
     dy = np.diff(coords[:, 1])
     return float(np.sum(np.sqrt(dx**2 + dy**2)))
@@ -258,8 +221,8 @@ def compute_distance_2d(coords):
 
 def compute_path_stats(path_coords, dem, transform, glacier_mask=None,
                        tobler_speed=None, tobler_gradient=None, off_trail=None):
-    """Stats completes d'un trajet pixel. Unifie T05/T06/T09.
-    Retourne un dict avec toutes les stats + arrays (cum_dist, elevations, etc)."""
+    """Stats completes d'un trajet pixel.
+    Retourne (stats_dict, arrays_dict) avec cum_dist, elevations etc."""
     from alpineroute.config import (
         TOBLER_BASE_SPEED_KMH, TOBLER_OPTIMAL_GRADIENT, OFF_TRAIL_FACTOR,
     )
@@ -332,12 +295,7 @@ def compute_path_stats(path_coords, dem, transform, glacier_mask=None,
     return stats, arrays
 
 
-# =====================================================
-#  Figure save helper
-# =====================================================
-
 def save_figure(fig, path, dpi=150, uhd_dpi=None):
-    """Save une fig matplotlib + version UHD optionnelle."""
     if uhd_dpi is None:
         from alpineroute.config import UHD_DPI
         uhd_dpi = UHD_DPI

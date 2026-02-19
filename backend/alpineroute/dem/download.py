@@ -24,9 +24,7 @@ from alpineroute.utils import DownloadError, DataNotFoundError
 logger = logging.getLogger(__name__)
 
 
-# =====================================================
-#  WFS discovery
-# =====================================================
+# --- WFS discovery ---
 
 def discover_tiles(bbox_l93, resolution=1.0):
     """Interroge le WFS IGN pour trouver les dalles qui intersectent la bbox.
@@ -54,9 +52,7 @@ def discover_tiles(bbox_l93, resolution=1.0):
     return features
 
 
-# =====================================================
-#  Download d'une dalle
-# =====================================================
+# download d'une dalle
 
 def _build_tile_url(tile_feature, resolution):
     """Construit l'URL WMS-R avec la bonne taille de pixel."""
@@ -141,9 +137,7 @@ def download_tile(tile_feature, cache_dir, resolution=1.0):
     return None
 
 
-# =====================================================
-#  Mosaic + crop
-# =====================================================
+# ==== Mosaic + crop ====
 
 def build_mosaic(tile_paths, bbox_l93, resolution):
     """Merge les dalles, reproject/crop sur la bbox, retourne le path."""
@@ -238,9 +232,7 @@ def build_mosaic(tile_paths, bbox_l93, resolution):
     return output_path
 
 
-# =====================================================
-#  Fallback Copernicus GLO-30 (hors France)
-# =====================================================
+# --- Fallback Copernicus GLO-30 ---
 
 def _copernicus_tile_names(bbox_wgs84):
     """Calcule les noms de tuiles Copernicus qui couvrent la bbox.
@@ -333,9 +325,7 @@ def get_dem_copernicus(bbox_wgs84, bbox_l93, resolution, cache_dir=None,
     return dem_path
 
 
-# =====================================================
-#  Pipeline complet
-# =====================================================
+# pipeline complet
 
 def get_dem(bbox_l93, resolution=1.0, cache_dir=None, progress_callback=None,
             bbox_wgs84=None):

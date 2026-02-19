@@ -1,4 +1,4 @@
-// profil altimetrique -- Recharts AreaChart, hover synchro carte
+// profil alti + synchro hover avec la carte
 import { useMemo } from 'react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ReferenceLine, ResponsiveContainer } from 'recharts'
 import { useApp } from '../context'
