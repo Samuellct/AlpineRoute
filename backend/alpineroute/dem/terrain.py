@@ -10,9 +10,7 @@ from alpineroute.utils import make_nodata_mask
 logger = logging.getLogger(__name__)
 
 
-# =====================================================
-#  Pente + Aspect (Horn's method)
-# =====================================================
+# -- pente/aspect (Horn) --
 
 def compute_slope_aspect(dem, resolution):
     """Calcule pente (deg) et aspect (deg, 0=N clockwise) via Horn kernels."""
@@ -66,9 +64,7 @@ def compute_slope_aspect(dem, resolution):
     return slope_deg, aspect_deg
 
 
-# =====================================================
-#  Rugosite (TRI ecart-type local 3x3)
-# =====================================================
+# -- rugosite TRI --
 
 def compute_roughness(dem):
     """TRI via ecart-type 3x3, NaN-aware."""

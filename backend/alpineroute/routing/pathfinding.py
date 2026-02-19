@@ -1,5 +1,4 @@
 # pathfinding Dijkstra sur surface de cout
-# source: T05_pathfinding.py
 
 import math
 import time
@@ -109,12 +108,9 @@ def run_pathfinding_alternatives(cost_grid, start_rc, end_rc, n_alt=3,
     return results
 
 
-# =====================================================
-#  Dijkstra anisotrope (scipy.sparse.csgraph)
-# =====================================================
-# Construit un graphe oriente creux: chaque arete (r,c)->(nr,nc)
-# a un cout directionnel tenant compte du gradient signe.
-# Utilise le Dijkstra C de scipy -> ~100x plus rapide que heapq pur.
+# --- Dijkstra aniso (scipy sparse) ---
+# chaque arete a un cout directionnel
+# TODO: tester A* avec heuristique euclidienne
 
 # 8-connexite
 _NEIGHBORS = [

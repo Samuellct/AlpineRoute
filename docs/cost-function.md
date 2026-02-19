@@ -4,7 +4,7 @@
 
 Le coût de traversée d'un pixel est le produit de plusieurs facteurs :
 
-$$C = f_{pente} \times f_{altitude} \times f_{aspect} \times f_{glacier} \times f_{rugosite}$$
+$$C = f_{pente} \times f_{altitude} \times f_{aspect} \times f_{glacier} \times f_{rugosité}$$
 
 Chaque facteur est un multiplicateur >= 1.0 (sauf pente qui est normalisée à 1.0 pr les terrain plat). Le cout final est multiplie par la distance euclidienne entre pixels voisins lors du pathfinding.
 
@@ -48,7 +48,6 @@ Pénalité liée à la réduction de la capacité physique en altitude.
 $$capacite = \max\left(1 - r \cdot \frac{alt - 1500}{1000},\ 0.3\right)$$
 
 $$f_{altitude} = \frac{1}{capacite}$$
-
 ### Paramètres
 
 - Seuil : 1500 m (en dessous, pas de penalité)
@@ -94,7 +93,7 @@ Surcout pour les zones glaciaires, fonction de la pente locale.
 | 20-30 deg | 4.0 | Pente raide, risque crevasses |
 | > 30 deg | 10.0 | Zone de seracs |
 
-Le masque glacier provient du Randolph Glacier Inventory (RGI) 7.0 rasterisé sur la grille Lidar.
+Le masque glacier provient du Randolph Glacier Inventory 7 rasterisé sur la grille Lidar.
 
 ### Limites
 
@@ -179,5 +178,5 @@ Plusieurs points a améliorer pour les V1.1 et V2.0:
 
 - **Modèle isotrope** : Le coût ne dépend pas de la direction de déplacement. Monter et descendre une pente à 30 degrés devrait avoir des couts différents (prévu V1.1)
 - **Pas de détection de crevasses** : le masque RGI donne les contours glaciaires mais pas la structure interne. Prévu de tester une approche Deep Learning pour la V2.0 (https://doi.org/10.1016/j.jag.2025.104495).
-- **Parametres WorldCover** : les multiplicateurs ne sont pas encore calibrés.
+- **Multiplicateurs WorldCover** : pas encore cortement calibres
 - **Saisonnalité simplifiée** : le modèle aspect/saison donne une info basique, modele python de radiation solaire en cours de tests pour la V2.0
