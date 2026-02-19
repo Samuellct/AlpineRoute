@@ -54,9 +54,9 @@ export interface MarkerPoint {
   lat: number
 }
 
-export type BasemapId = 'plan' | 'satellite' | 'slopes' | 'topo-global' | 'satellite-global'
+export type BasemapId = 'plan' | 'satellite' | 'topo-global' | 'satellite-global'
 
-export type OverlayId = 'slopes' | 'hillshade' | 'cost' | 'glaciers'
+export type OverlayId = 'slopes' | 'cost' | 'glaciers'
 
 // -- historique --
 

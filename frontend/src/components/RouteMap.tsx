@@ -6,7 +6,7 @@ import { TerraDraw, TerraDrawPolygonMode } from 'terra-draw'
 import { TerraDrawMapLibreGLAdapter } from 'terra-draw-maplibre-gl-adapter'
 import { useApp } from '../context'
 import { fetchGlaciers, fetchCostSurface } from '../api'
-import type { BasemapId, OverlayId, Coord3D, RouteFeature, ZoneType } from '../types'
+import type { BasemapId, Coord3D, RouteFeature, ZoneType } from '../types'
 import BasemapSelector from './BasemapSelector'
 
 // position par defaut
@@ -19,16 +19,12 @@ const MT_KEY = import.meta.env.VITE_MAPTILER_KEY || ''
 const BASEMAP_URLS: Record<BasemapId, string> = {
   plan: 'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}',
   satellite: 'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}',
-  slopes: 'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.SLOPES.MOUNTAIN&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}',
   'topo-global': `https://api.maptiler.com/maps/topo-v2/256/{z}/{x}/{y}.png?key=${MT_KEY}`,
   'satellite-global': `https://api.maptiler.com/maps/satellite/256/{z}/{x}/{y}.jpg?key=${MT_KEY}`,
 }
 
-// URLs calques (glaciers et cout gerés via API)
-const OVERLAY_URLS: Record<string, string> = {
-  slopes: 'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.SLOPES.MOUNTAIN&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}',
-  hillshade: `https://api.maptiler.com/tiles/hillshade/{z}/{x}/{y}.png?key=${MT_KEY}`,
-}
+// URL calque pentes (glaciers et cout geres via API)
+const SLOPES_OVERLAY_URL = 'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.SLOPES.MOUNTAIN&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}'
 
 // couleurs zones par type
 const ZONE_COLORS: Record<ZoneType, string> = {
@@ -317,18 +313,16 @@ export default function RouteMap() {
     const map = mapRef.current
     if (!map || !map.isStyleLoaded()) return
 
-    const tileOverlays: OverlayId[] = ['slopes', 'hillshade']
-
-    for (const oid of tileOverlays) {
-      const srcId = `overlay-${oid}`
-      const layerId = `overlay-${oid}-layer`
-      const active = state.activeOverlays.includes(oid)
+    // calque pentes IGN
+    const srcId = 'overlay-slopes'
+    const layerId = 'overlay-slopes-layer'
+    const active = state.activeOverlays.includes('slopes')
 
       if (active) {
         if (!map.getSource(srcId)) {
           map.addSource(srcId, {
             type: 'raster',
-            tiles: [OVERLAY_URLS[oid]],
+          tiles: [SLOPES_OVERLAY_URL],
             tileSize: 256,
             maxzoom: 18,
           })
@@ -339,14 +333,13 @@ export default function RouteMap() {
             id: layerId,
             type: 'raster',
             source: srcId,
-            paint: { 'raster-opacity': oid === 'hillshade' ? 0.35 : 0.5 },
+          paint: { 'raster-opacity': 0.5 },
           }, beforeLayer)
         }
       } else {
         if (map.getLayer(layerId)) map.removeLayer(layerId)
         if (map.getSource(srcId)) map.removeSource(srcId)
       }
-    }
   }, [state.activeOverlays])
 
   // -- calques glaciers (GeoJSON) --

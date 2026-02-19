@@ -5,14 +5,12 @@ import type { BasemapId, OverlayId } from '../types'
 const basemaps: { id: BasemapId; label: string }[] = [
   { id: 'plan', label: 'Plan IGN' },
   { id: 'satellite', label: 'Satellite IGN' },
-  { id: 'slopes', label: 'Pentes' },
   { id: 'topo-global', label: 'Topo' },
   { id: 'satellite-global', label: 'Satellite' },
 ]
 
 const overlays: { id: OverlayId; label: string }[] = [
   { id: 'slopes', label: 'Pentes' },
-  { id: 'hillshade', label: 'Hillshade' },
   { id: 'glaciers', label: 'Glaciers' },
   { id: 'cost', label: 'Cout' },
 ]
