@@ -30,6 +30,23 @@ function getSelectedRoute(
   return routeResult.route
 }
 
+// chevron SVG inline (pas de dep externe)
+function ChevronUp() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M4 10L8 6L12 10" />
+    </svg>
+  )
+}
+
+function ChevronDown() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M4 6L8 10L12 6" />
+    </svg>
+  )
+}
+
 export default function ElevationProfile() {
   const { state, dispatch } = useApp()
 
@@ -49,6 +66,22 @@ export default function ElevationProfile() {
 
   if (!route || data.length === 0) return null
 
+  // profil masque -> juste un petit bouton pour re-ouvrir
+  if (!state.profileVisible) {
+    return (
+      <button
+        onClick={() => dispatch({ type: 'TOGGLE_PROFILE' })}
+        className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10
+          bg-gray-900/80 hover:bg-gray-800 text-white/80 hover:text-white
+          rounded-t px-4 py-1 text-xs backdrop-blur-sm cursor-pointer
+          border border-gray-700 border-b-0 transition-colors"
+        title="Afficher le profil"
+      >
+        <ChevronUp />
+      </button>
+    )
+  }
+
   // trouver la distance du hover venant de la carte
   const hoverDist = state.hoveredIndex != null && data[state.hoveredIndex]
     ? data[state.hoveredIndex].dist
@@ -57,6 +90,15 @@ export default function ElevationProfile() {
   return (
     <div className="absolute bottom-0 left-0 right-0 h-48 z-10
       bg-gray-900/90 backdrop-blur-sm border-t border-gray-700">
+      {/* bouton fermer */}
+      <button
+        onClick={() => dispatch({ type: 'TOGGLE_PROFILE' })}
+        className="absolute top-1 right-2 z-20 text-white/50 hover:text-white
+          cursor-pointer p-1 transition-colors"
+        title="Masquer le profil"
+      >
+        <ChevronDown />
+      </button>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
           data={data}

@@ -1,4 +1,4 @@
-// carte MapLibre -- basemap IGN/MapTiler, markers, route, alternatives, zones, terrain 3D
+// carte MapLibre -- basemap IGN/MapTiler, markers, route, alternatives, terrain 3D
 import { useEffect, useRef, useCallback } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -318,28 +318,28 @@ export default function RouteMap() {
     const layerId = 'overlay-slopes-layer'
     const active = state.activeOverlays.includes('slopes')
 
-      if (active) {
-        if (!map.getSource(srcId)) {
-          map.addSource(srcId, {
-            type: 'raster',
+    if (active) {
+      if (!map.getSource(srcId)) {
+        map.addSource(srcId, {
+          type: 'raster',
           tiles: [SLOPES_OVERLAY_URL],
-            tileSize: 256,
-            maxzoom: 18,
-          })
-        }
-        if (!map.getLayer(layerId)) {
-          const beforeLayer = map.getLayer('alt-routes-halo') ? 'alt-routes-halo' : undefined
-          map.addLayer({
-            id: layerId,
-            type: 'raster',
-            source: srcId,
-          paint: { 'raster-opacity': 0.5 },
-          }, beforeLayer)
-        }
-      } else {
-        if (map.getLayer(layerId)) map.removeLayer(layerId)
-        if (map.getSource(srcId)) map.removeSource(srcId)
+          tileSize: 256,
+          maxzoom: 18,
+        })
       }
+      if (!map.getLayer(layerId)) {
+        const beforeLayer = map.getLayer('alt-routes-halo') ? 'alt-routes-halo' : undefined
+        map.addLayer({
+          id: layerId,
+          type: 'raster',
+          source: srcId,
+          paint: { 'raster-opacity': 0.5 },
+        }, beforeLayer)
+      }
+    } else {
+      if (map.getLayer(layerId)) map.removeLayer(layerId)
+      if (map.getSource(srcId)) map.removeSource(srcId)
+    }
   }, [state.activeOverlays])
 
   // -- calques glaciers (GeoJSON) --

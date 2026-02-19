@@ -29,6 +29,7 @@ export interface AppState {
   pendingZoneGeojson: object | null
   zoneFormOpen: boolean
   activeOverlays: OverlayId[]
+  profileVisible: boolean
 }
 
 const defaultParams: RouteParams = {
@@ -62,6 +63,7 @@ const initialState: AppState = {
   pendingZoneGeojson: null,
   zoneFormOpen: false,
   activeOverlays: [],
+  profileVisible: true,
 }
 
 // -- actions --
@@ -90,6 +92,7 @@ type Action =
   | { type: 'SET_PENDING_ZONE'; geojson: object | null }
   | { type: 'SET_ZONE_FORM_OPEN'; open: boolean }
   | { type: 'TOGGLE_OVERLAY'; overlay: OverlayId }
+  | { type: 'TOGGLE_PROFILE' }
   | { type: 'RESET' }
 
 function reducer(state: AppState, action: Action): AppState {
@@ -112,7 +115,7 @@ function reducer(state: AppState, action: Action): AppState {
       return {
         ...state, calcStatus: 'done', progress: 100,
         progressStep: 'done', routeResult: action.result,
-        selectedRouteIndex: 0,
+        selectedRouteIndex: 0, profileVisible: true,
       }
     case 'CALC_ERROR':
       return { ...state, calcStatus: 'error', errorMessage: action.message }
@@ -160,6 +163,8 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, pendingZoneGeojson: action.geojson }
     case 'SET_ZONE_FORM_OPEN':
       return { ...state, zoneFormOpen: action.open }
+    case 'TOGGLE_PROFILE':
+      return { ...state, profileVisible: !state.profileVisible }
     case 'TOGGLE_OVERLAY': {
       const has = state.activeOverlays.includes(action.overlay)
       return {
