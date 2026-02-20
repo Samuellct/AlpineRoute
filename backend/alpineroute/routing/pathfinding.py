@@ -14,8 +14,8 @@ from alpineroute.config import (
     NODATA_VALUE, COST_NODATA_VALUE,
     PENALTY_MULTIPLIER, PENALTY_BUFFER_PX, PENALTY_BUFFER_M,
     TOBLER_BASE_SPEED_KMH, TOBLER_OPTIMAL_GRADIENT, OFF_TRAIL_FACTOR,
-    STEEP_SLOPE_THRESHOLD_DEG, STEEP_SLOPE_MULTIPLIER,
-    CRITICAL_SLOPE_DEG, CRITICAL_SLOPE_MULTIPLIER,
+    GRADIENT_CLIP,
+    STEEP_ONSET_DEG, STEEP_FULL_DEG, STEEP_MAX_MULTIPLIER,
 )
 
 logger = logging.getLogger(__name__)
@@ -130,27 +130,26 @@ _V_FLAT = (TOBLER_BASE_SPEED_KMH
            * math.exp(-3.5 * TOBLER_OPTIMAL_GRADIENT)
            * OFF_TRAIL_FACTOR)
 
-# seuils pente en radians
-_STEEP_RAD = math.radians(STEEP_SLOPE_THRESHOLD_DEG)
-_CRIT_RAD = math.radians(CRITICAL_SLOPE_DEG)
-
-
 def _tobler_cost_vectorized(gradient):
     """Tobler directionnel vectorise.
     gradient = dz/dist signe, retourne un multiplicateur (1.0 sur du plat)."""
+    gradient = np.clip(gradient, -GRADIENT_CLIP, GRADIENT_CLIP) # clip gradient pour éviter overflow float32
+
     v = TOBLER_BASE_SPEED_KMH * np.exp(
         -3.5 * np.abs(gradient + TOBLER_OPTIMAL_GRADIENT)
     ) * OFF_TRAIL_FACTOR
     v = np.maximum(v, 0.01)
     cost = _V_FLAT / v
 
-    # penalites pente raide
-    slope_rad = np.abs(np.arctan(gradient))
-    cost = np.where(
-        slope_rad > _CRIT_RAD,
-        cost * STEEP_SLOPE_MULTIPLIER * CRITICAL_SLOPE_MULTIPLIER,
-        np.where(slope_rad > _STEEP_RAD, cost * STEEP_SLOPE_MULTIPLIER, cost),
+    slope_deg = np.degrees(np.abs(np.arctan(gradient)))
+    steep_factor = np.where(
+        slope_deg > STEEP_ONSET_DEG,
+        1.0 + (STEEP_MAX_MULTIPLIER - 1.0) * np.clip(
+            (slope_deg - STEEP_ONSET_DEG) / (STEEP_FULL_DEG - STEEP_ONSET_DEG),
+            0, 1),
+        1.0,
     )
+    cost *= steep_factor
     return cost
 
 

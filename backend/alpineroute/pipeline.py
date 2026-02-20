@@ -9,6 +9,7 @@ import numpy as np
 from alpineroute.config import (
     MAX_GRID_PIXELS, MAX_GRID_PIXELS_ANISO,
     MAX_ROUTE_POINTS_API, NODATA_VALUE, DB_PATH,
+    ISOTROPIC_WARNING_DPLUS_M,
 )
 from alpineroute.utils import (
     compute_bbox, load_dem, wgs84_to_pixel, pixel_to_l93,
@@ -353,11 +354,25 @@ def run_pipeline(req, progress_callback=None):
 
     _progress(progress_callback, "result", 1.0)
 
+    warnings = []
+    if not use_aniso and routes:
+        dplus = routes[0]["properties"]["dplus_m"]
+        dminus = routes[0]["properties"]["dminus_m"]
+        if max(dplus, dminus) > ISOTROPIC_WARNING_DPLUS_M:
+            warnings.append(
+                f"Mode isotrope avec D+={dplus:.0f}m / D-={dminus:.0f}m : "
+                "le mode precis (anisotrope) donnerait un meilleur resultat "
+                "car il distingue montee et descente."
+            )
+
     result = {
         "status": "ok",
         "route": routes[0] if routes else None,
         "computation_time_s": round(total_dt, 1),
     }
+
+    if warnings:
+        result["warnings"] = warnings
 
     if len(routes) > 1:
         result["routes"] = routes

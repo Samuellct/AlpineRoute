@@ -31,6 +31,7 @@ export interface RouteResult {
   routes?: RouteFeature[]
   n_routes?: number
   saved_route_id?: number
+  warnings?: string[]
 }
 
 export interface SSEMessage {

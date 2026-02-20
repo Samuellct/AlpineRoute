@@ -41,6 +41,11 @@ export default function RouteStats() {
           </div>
         ))}
       </div>
+      {state.routeResult?.warnings?.map((w, i) => (
+        <div key={i} className="bg-amber-50 border border-amber-300 text-amber-800 text-xs p-2 rounded mt-2">
+          {w}
+        </div>
+      ))}
     </div>
   )
 }

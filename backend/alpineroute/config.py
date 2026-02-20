@@ -43,26 +43,28 @@ BBOX_ALIGN_M = 1000        # aligner sur les dalles IGN (1km)
 TOBLER_BASE_SPEED_KMH = 6.0
 TOBLER_OPTIMAL_GRADIENT = 0.05
 OFF_TRAIL_FACTOR = 0.6
+GRADIENT_CLIP = 10.0  # |gradient| max avant Tobler
 
-# ---- cost function : pente ----
-STEEP_SLOPE_THRESHOLD_DEG = 45      # debut penalite supplementaire
-STEEP_SLOPE_MULTIPLIER = 5.0
-CRITICAL_SLOPE_DEG = 60             # quasi-infranchissable
-CRITICAL_SLOPE_MULTIPLIER = 50.0
-SERAC_SLOPE_DEG = 35               # seuil seracs arbitraire
+# ---- cost function : penalite progressive pour les pentes ----
+STEEP_ONSET_DEG = 35          # deg debut penalite
+STEEP_FULL_DEG = 55           # deg de penalite maximale
+STEEP_MAX_MULTIPLIER = 20.0
+SERAC_SLOPE_DEG = 35          # seuil seracs a midifier
 
-# ---- cost function : altitude / hypoxie ----
+# ---- cost function : altitude ----
 HYPOXIA_ALTITUDE_THRESHOLD = 1500
-HYPOXIA_RATE_ACCLIMATIZED = 0.03
+HYPOXIA_MODERATE_THRESHOLD = 2500   # palier ou le taux augmente
+HYPOXIA_RATE_MODERATE = 0.01        # 1500-2500m
+HYPOXIA_RATE_ACCLIMATIZED = 0.03    # >2500m
 HYPOXIA_RATE_NOT_ACCLIMATIZED = 0.063
 HYPOXIA_MIN_CAPACITY = 0.3
 
 # ---- cost function : aspect / saison ----
 ASPECT_SUMMER_MONTHS = [6, 7, 8, 9]
-ASPECT_SOUTH_PENALTY_MAX = 0.5      # +50% max sur face sud en ete
+ASPECT_SOUTH_PENALTY_MAX = 0.5      # +50 % max sur face sud en ete
 ASPECT_SOUTH_SLOPE_THRESHOLD = 30
 ASPECT_SOUTH_ALTITUDE_THRESHOLD = 2500
-ASPECT_NORTH_PENALTY_MAX = 0.3      # +30% max sur face nord en hiver
+ASPECT_NORTH_PENALTY_MAX = 0.3      # +30 % max sur face nord en hiver
 ASPECT_NORTH_SLOPE_THRESHOLD = 25
 
 # ---- cost function : glacier ----
@@ -114,6 +116,9 @@ MAX_GRID_PIXELS = 200_000_000    # garde-fou memoire
 MAX_GRID_PIXELS_ANISO = int(os.environ.get(
     "ALPINEROUTE_MAX_GRID_ANISO", 50_000_000
 ))  # aniso gourmand en RAM, surcharger si machine costaud
+
+# ---- warnings ----
+ISOTROPIC_WARNING_DPLUS_M = 500  # seuil D+ pour warning isotrope
 
 # ---- pathfinding ----
 COST_NODATA_VALUE = 1e6     # cap pour eviter overflow

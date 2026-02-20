@@ -6,9 +6,10 @@ import logging
 from alpineroute.config import (
     NODATA_VALUE,
     TOBLER_BASE_SPEED_KMH, TOBLER_OPTIMAL_GRADIENT, OFF_TRAIL_FACTOR,
-    STEEP_SLOPE_THRESHOLD_DEG, STEEP_SLOPE_MULTIPLIER,
-    CRITICAL_SLOPE_DEG, CRITICAL_SLOPE_MULTIPLIER,
-    HYPOXIA_ALTITUDE_THRESHOLD, HYPOXIA_RATE_ACCLIMATIZED,
+    GRADIENT_CLIP,
+    STEEP_ONSET_DEG, STEEP_FULL_DEG, STEEP_MAX_MULTIPLIER,
+    HYPOXIA_ALTITUDE_THRESHOLD, HYPOXIA_MODERATE_THRESHOLD,
+    HYPOXIA_RATE_MODERATE, HYPOXIA_RATE_ACCLIMATIZED,
     HYPOXIA_RATE_NOT_ACCLIMATIZED, HYPOXIA_MIN_CAPACITY,
     ASPECT_SUMMER_MONTHS, ASPECT_SOUTH_PENALTY_MAX,
     ASPECT_SOUTH_SLOPE_THRESHOLD, ASPECT_SOUTH_ALTITUDE_THRESHOLD,
@@ -27,6 +28,7 @@ def compute_slope_cost(slope_deg):
     """Tobler hiking function hors-sentier."""
     slope_rad = np.radians(np.clip(slope_deg, 0, 89.9))
     gradient = np.tan(slope_rad)
+    gradient = np.clip(gradient, -GRADIENT_CLIP, GRADIENT_CLIP)
 
     v = TOBLER_BASE_SPEED_KMH * np.exp(
         -3.5 * np.abs(gradient + TOBLER_OPTIMAL_GRADIENT)
@@ -39,11 +41,15 @@ def compute_slope_cost(slope_deg):
     ) * OFF_TRAIL_FACTOR
     cost = v_flat / v
 
-    steep = slope_deg > STEEP_SLOPE_THRESHOLD_DEG
-    cost = np.where(steep, cost * STEEP_SLOPE_MULTIPLIER, cost)
-
-    very_steep = slope_deg > CRITICAL_SLOPE_DEG
-    cost = np.where(very_steep, cost * CRITICAL_SLOPE_MULTIPLIER, cost)
+    # penalite progressive pr les pentes
+    steep_factor = np.where(
+        slope_deg > STEEP_ONSET_DEG,
+        1.0 + (STEEP_MAX_MULTIPLIER - 1.0) * np.clip(
+            (slope_deg - STEEP_ONSET_DEG) / (STEEP_FULL_DEG - STEEP_ONSET_DEG),
+            0, 1),
+        1.0,
+    )
+    cost *= steep_factor
 
     return cost.astype(np.float32)
 
@@ -51,9 +57,17 @@ def compute_slope_cost(slope_deg):
 # -- facteur altitude / hypoxie
 
 def compute_altitude_cost(elevation, acclimatized=True):
-    """Penalite hypoxie au-dessus de 1500m."""
-    rate = HYPOXIA_RATE_ACCLIMATIZED if acclimatized else HYPOXIA_RATE_NOT_ACCLIMATIZED
-    reduction = np.maximum(0, (elevation - HYPOXIA_ALTITUDE_THRESHOLD) * rate / 1000.0)
+    """Penalite hypoxie: legere 1500-2500m, forte au-dessus."""
+    rate_high = HYPOXIA_RATE_ACCLIMATIZED if acclimatized else HYPOXIA_RATE_NOT_ACCLIMATIZED
+
+    # palier 1: 1500-2500m (cst gérées ds le config.py)
+    elev_moderate = np.clip(elevation, HYPOXIA_ALTITUDE_THRESHOLD, HYPOXIA_MODERATE_THRESHOLD)
+    reduction_moderate = (elev_moderate - HYPOXIA_ALTITUDE_THRESHOLD) * HYPOXIA_RATE_MODERATE / 1000.0
+
+    # palier 2: >2500m
+    reduction_high = np.maximum(0, (elevation - HYPOXIA_MODERATE_THRESHOLD) * rate_high / 1000.0)
+
+    reduction = reduction_moderate + reduction_high
     capacity = np.maximum(1.0 - reduction, HYPOXIA_MIN_CAPACITY)
     return (1.0 / capacity).astype(np.float32)
 

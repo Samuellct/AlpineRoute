@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.1.0] - 2026-02-20
+
+### Added
+- Warning API si mode isotrope avec D+/D- > 500m
+- script benchmark + save JSON
+
+### Changed
+- Pénalité pente progressive 35-55 deg (remplace seuils durs 45/60 deg)
+- Hypoxie à deux niveaux : 0.01/1000m (1500-2500m) et 0.03/1000m (>2500m)
+- Gradient clippe a [-10, 10] avant calcul Tobler
+
 ## [1.0.3] - 2026-02-20
 
 ### Fixed
