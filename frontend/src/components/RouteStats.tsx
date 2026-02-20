@@ -1,15 +1,5 @@
 import { useApp } from '../context'
-import type { RouteFeature } from '../types'
-
-// helper: la route actuellement selectionnee
-function getSelectedRoute(
-  routeResult: { route: RouteFeature; routes?: RouteFeature[] } | null,
-  idx: number,
-): RouteFeature | null {
-  if (!routeResult) return null
-  if (routeResult.routes && routeResult.routes[idx]) return routeResult.routes[idx]
-  return routeResult.route
-}
+import { getSelectedRoute } from '../types'
 
 export default function RouteStats() {
   const { state } = useApp()

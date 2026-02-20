@@ -2,7 +2,7 @@
 import { useMemo } from 'react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ReferenceLine, ResponsiveContainer } from 'recharts'
 import { useApp } from '../context'
-import type { RouteFeature } from '../types'
+import { getSelectedRoute } from '../types'
 
 // haversine simplifiee (m) entre deux points WGS84
 function haversine(lon1: number, lat1: number, lon2: number, lat2: number): number {
@@ -19,15 +19,6 @@ interface DataPoint {
   dist: number   // km cumule
   alt: number
   index: number
-}
-
-function getSelectedRoute(
-  routeResult: { route: RouteFeature; routes?: RouteFeature[] } | null,
-  idx: number,
-): RouteFeature | null {
-  if (!routeResult) return null
-  if (routeResult.routes && routeResult.routes[idx]) return routeResult.routes[idx]
-  return routeResult.route
 }
 
 // chevron SVG inline (pas de dep externe)

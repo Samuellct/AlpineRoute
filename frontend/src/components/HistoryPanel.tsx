@@ -1,18 +1,12 @@
 // historique -liste des routes calc
-import { useEffect } from 'react'
+import { useEffect, useCallback } from 'react'
 import { useApp } from '../context'
 import { fetchRouteHistory, fetchRouteDetail, deleteRoute } from '../api'
 
 export default function HistoryPanel() {
   const { state, dispatch } = useApp()
 
-  // charger la liste au mount et a chaque switch
-  useEffect(() => {
-    if (state.activeTab !== 'historique') return
-    loadHistory()
-  }, [state.activeTab])
-
-  async function loadHistory() {
+  const loadHistory = useCallback(async () => {
     dispatch({ type: 'HISTORY_LOADING' })
     try {
       const routes = await fetchRouteHistory(50, 0)
@@ -21,7 +15,13 @@ export default function HistoryPanel() {
       console.warn('history fetch failed', e)
       dispatch({ type: 'HISTORY_LOADED', routes: [] })
     }
-  }
+  }, [dispatch])
+
+  // charger la liste au mount et a chaque switch
+  useEffect(() => {
+    if (state.activeTab !== 'historique') return
+    loadHistory()
+  }, [state.activeTab, loadHistory])
 
   async function handleLoad(id: number) {
     try {

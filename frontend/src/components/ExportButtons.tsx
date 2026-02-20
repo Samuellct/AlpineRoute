@@ -1,6 +1,6 @@
 // export GPX + GeoJSON
 import { useApp } from '../context'
-import type { RouteFeature } from '../types'
+import { getSelectedRoute } from '../types'
 
 function downloadFile(content: string, filename: string, mime: string) {
   const blob = new Blob([content], { type: mime })
@@ -26,15 +26,6 @@ ${trkpts}
     </trkseg>
   </trk>
 </gpx>`
-}
-
-function getSelectedRoute(
-  routeResult: { route: RouteFeature; routes?: RouteFeature[] } | null,
-  idx: number,
-): RouteFeature | null {
-  if (!routeResult) return null
-  if (routeResult.routes && routeResult.routes[idx]) return routeResult.routes[idx]
-  return routeResult.route
 }
 
 export default function ExportButtons() {

@@ -103,3 +103,13 @@ export interface ZoneCreatePayload {
 }
 
 export type SidebarTab = 'calcul' | 'historique'
+
+// helper route affichée
+export function getSelectedRoute(
+  routeResult: RouteResult | null,
+  idx: number,
+): RouteFeature | null {
+  if (!routeResult) return null
+  if (routeResult.routes && routeResult.routes[idx]) return routeResult.routes[idx]
+  return routeResult.route
+}

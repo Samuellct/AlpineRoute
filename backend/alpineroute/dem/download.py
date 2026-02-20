@@ -1,10 +1,10 @@
-# telechargement DEM IGN Lidar HD + fallback Copernicus GLO-30
-# source: T01_dem_download.py, adapte pour bbox dynamique + cache
+# Dl lidar HD mnt + fallback Copernicus GLO-30
 
 import os
 import math
 import time
 import logging
+from contextlib import ExitStack
 from urllib.parse import urlparse, parse_qs, urlencode
 
 import httpx
@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 
 
 # --- WFS discovery ---
-
 def discover_tiles(bbox_l93, resolution=1.0):
     """Interroge le WFS IGN pour trouver les dalles qui intersectent la bbox.
     Retourne la liste de features GeoJSON."""
@@ -52,7 +51,7 @@ def discover_tiles(bbox_l93, resolution=1.0):
     return features
 
 
-# download d'une dalle
+# dl d'une dalle
 
 def _build_tile_url(tile_feature, resolution):
     """Construit l'URL WMS-R avec la bonne taille de pixel."""
@@ -164,21 +163,19 @@ def build_mosaic(tile_paths, bbox_l93, resolution):
             pass
 
     logger.info("merge %d dalles...", len(tile_paths))
-    datasets = [rasterio.open(p) for p in tile_paths]
+    with ExitStack() as stack:
+        datasets = [stack.enter_context(rasterio.open(p)) for p in tile_paths]
 
-    if len(datasets) == 1:
-        mosaic = datasets[0].read(1)
-        mosaic_transform = datasets[0].transform
-        mosaic_crs = datasets[0].crs
-        src_nodata = datasets[0].nodata
-    else:
-        mosaic, mosaic_transform = merge(datasets, nodata=NODATA_VALUE)
-        mosaic = mosaic[0]
-        mosaic_crs = datasets[0].crs
-        src_nodata = NODATA_VALUE
-
-    for ds in datasets:
-        ds.close()
+        if len(datasets) == 1:
+            mosaic = datasets[0].read(1)
+            mosaic_transform = datasets[0].transform
+            mosaic_crs = datasets[0].crs
+            src_nodata = datasets[0].nodata
+        else:
+            mosaic, mosaic_transform = merge(datasets, nodata=NODATA_VALUE)
+            mosaic = mosaic[0]
+            mosaic_crs = datasets[0].crs
+            src_nodata = NODATA_VALUE
 
     # target grid
     width = int(round((bbox_l93["xmax"] - bbox_l93["xmin"]) / resolution))

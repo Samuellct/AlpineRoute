@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.3] - 2026-02-20
+
+### Fixed
+- Fuite file handles dans build_mosaic (ExitStack)
+- useEffect deps manquantes dans HistoryPanel
+
+### Changed
+- Extraction getSelectedRoute dans types.ts
+- Extraction hooks calques depuis RouteMap
+
 ## [1.0.2] - 2026-02-19
 
 ### Changed
