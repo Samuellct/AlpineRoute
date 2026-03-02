@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.1.1]
+
+### Added
+- environment.yml pour setup micromamba
+
+### Fixed
+- Typage ElevationProfile : formatter/labelFormatter Recharts + onMouseMove
+- Cast geojson zones dans RouteMap (Record<string, unknown> au lieu de any)
+- loadZones déclaré avant useEffect dans ZonePanel
+- Cast inutile retiré dans useOverlays
+- eslint-disable ciblé pour useApp dans context.tsx (react-refresh/only-export-components)
+
+### Changed
+- backend/tests retiré du .gitignore (nécessaire pour la CI)
+
 ## [1.1.0]
 
 ### Added

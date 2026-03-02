@@ -94,6 +94,7 @@ export default function ElevationProfile() {
         <AreaChart
           data={data}
           margin={{ top: 10, right: 20, left: 10, bottom: 5 }}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           onMouseMove={(e: any) => {
             if (e?.activePayload?.[0]) {
               const idx = e.activePayload[0].payload.index
@@ -129,8 +130,8 @@ export default function ElevationProfile() {
               background: 'rgba(17,24,39,0.95)', border: '1px solid #374151',
               borderRadius: 6, fontSize: 12, color: '#fff',
             }}
-            formatter={(value: any) => [`${Math.round(value)} m`, 'Altitude']}
-            labelFormatter={(v: any) => `${Number(v).toFixed(2)} km`}
+            formatter={(value) => [`${Math.round(Number(value))} m`, 'Altitude']}
+            labelFormatter={(v) => `${Number(v).toFixed(2)} km`}
           />
           {hoverDist != null && (
             <ReferenceLine x={hoverDist} stroke="#facc15" strokeDasharray="3 3" />

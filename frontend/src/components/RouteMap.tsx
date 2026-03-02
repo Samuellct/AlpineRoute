@@ -429,10 +429,10 @@ export default function RouteMap() {
     const features = state.zones
       .filter(z => z.active && z.geojson)
       .map(z => {
-        const geo = z.geojson as any
+        const geo = z.geojson as Record<string, unknown>
         return {
           type: 'Feature' as const,
-          geometry: geo.geometry || geo,
+          geometry: (geo.geometry || geo) as GeoJSON.Geometry,
           properties: {
             id: z.id,
             name: z.name,

@@ -17,11 +17,6 @@ const ZONE_LABELS: Record<ZoneType, string> = {
 export default function ZonePanel() {
   const { state, dispatch } = useApp()
 
-  // fetch au mount
-  useEffect(() => {
-    loadZones()
-  }, [])
-
   async function loadZones() {
     try {
       const zones = await fetchZones()
@@ -30,6 +25,11 @@ export default function ZonePanel() {
       console.warn('zones fetch failed', e)
     }
   }
+
+  // fetch au mount
+  useEffect(() => {
+    loadZones()
+  }, [loadZones])
 
   async function handleDelete(id: number) {
     try {

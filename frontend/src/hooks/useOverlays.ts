@@ -96,7 +96,7 @@ export function useGlaciersOverlay(
       fetchGlaciers(bbox)
         .then(geojson => {
           const src = map.getSource(srcId) as maplibregl.GeoJSONSource | undefined
-          if (src) src.setData(geojson as any)
+          if (src) src.setData(geojson)
         })
         .catch(err => console.warn('glaciers fetch fail:', err))
     }
