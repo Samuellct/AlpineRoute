@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.1.0] - 2026-02-20
+## [1.1.0]
 
 ### Added
 - Warning API si mode isotrope avec D+/D- > 500m
@@ -11,7 +11,7 @@
 - Hypoxie à deux niveaux : 0.01/1000m (1500-2500m) et 0.03/1000m (>2500m)
 - Gradient clippe a [-10, 10] avant calcul Tobler
 
-## [1.0.3] - 2026-02-20
+## [1.0.3]
 
 ### Fixed
 - Fuite file handles dans build_mosaic (ExitStack)
@@ -21,20 +21,20 @@
 - Extraction getSelectedRoute dans types.ts
 - Extraction hooks calques depuis RouteMap
 
-## [1.0.2] - 2026-02-19
+## [1.0.2]
 
 ### Changed
 - Nettoyage des commentaires python
 - Ajouts de quelques infos dans la doc
 
-## [1.0.1] - 2026-02-19
+## [1.0.1]
 
 ### Fixed
 - Buffer routes alternatives en mètres (50m minimum qq soit la resolution)
 - Alignement raster WorldCover via rasterio.warp au lieu de scipy.ndimage.zoom
 - Doc : endpoint /glaciers et /cost-surface documentés
 
-## [1.0.0] - 2026-02-19
+## [1.0.0]
 
 Première version fonctionnelle en local.
 

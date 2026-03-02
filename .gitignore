@@ -20,7 +20,6 @@ projet.md
 *.jp2
 data/
 bugs/
-backend/tests
 Phase_00_testsInitiaux/
 
 # ========== Python ==========
