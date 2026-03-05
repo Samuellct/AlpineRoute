@@ -12,9 +12,6 @@
 - Cast inutile retiré dans useOverlays
 - eslint-disable ciblé pour useApp dans context.tsx (react-refresh/only-export-components)
 
-### Changed
-- backend/tests retiré du .gitignore (nécessaire pour la CI)
-
 ## [1.1.0]
 
 ### Added
