@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0]
+
+### Added
+- Module OSM trails : dl Overpass, classification 12 niveaux (sac_scale, tracktype, surface), rasterisation sur grille lidar
+- Module OSM barriers : rivières, autoroutes infranchissables, ruisseaux pénalisés, détection ponts/gué
+- Cache local .gpkg pour les donnees OSM avec TTL 30j
+- Tests unitaires trails et barriers
+
 ## [1.2.0]
 
 ### Changed

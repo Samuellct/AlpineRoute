@@ -93,6 +93,38 @@ WORLDCOVER_MULTIPLIERS = {
 }
 WORLDCOVER_URL_PATTERN = "https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/map/ESA_WorldCover_10m_2021_v200_{tile}_Map.tif"
 
+# ---- OSM / sentiers & barrieres ----
+OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+OVERPASS_TIMEOUT = 60
+OSM_CACHE_DIR = os.path.join(DATA_DIR, "cache", "osm")
+OSM_CACHE_TTL_DAYS = 30
+
+TRAIL_COST_MULTIPLIERS = {
+    "paved": 0.50,
+    "gravel": 0.55,
+    "road": 0.55,
+    "trail_t1t2": 0.60,
+    "trail_default": 0.60,
+    "trail_t3": 0.70,
+    "track_soft": 0.72,
+    "trail_t4": 0.80,
+    "trail_t5": 0.90,
+    "trail_t6": 1.00,
+}
+
+TRAIL_BUFFER_M = {
+    "road": 2.0,
+    "trail": 1.0,
+    "alpine": 0.5,
+}
+
+RIVER_BUFFER_M = 5.0
+CANAL_BUFFER_M = 3.0
+STREAM_BUFFER_M = 2.0
+BRIDGE_BUFFER_M = 3.0
+MOTORWAY_BUFFER_M = 5.0
+STREAM_CROSSING_PENALTY = 6.0
+
 # ---- hillshade ----
 HILLSHADE_AZIMUTH = 315
 HILLSHADE_ALTITUDE = 45
