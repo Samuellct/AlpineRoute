@@ -20,8 +20,16 @@ class RouteRequest(BaseModel):
     acclimatized: bool = True
     n_alternatives: int = 0
     anisotropic: bool = False
+    routing_mode: int = 2
     save: bool = True
     name: Optional[str] = None
+
+    @field_validator("routing_mode")
+    @classmethod
+    def check_routing_mode(cls, v):
+        if v not in (1, 2):
+            raise ValueError(f"routing_mode {v} invalide, accepte: 1 ou 2")
+        return v
 
     @field_validator("start_lat", "end_lat")
     @classmethod

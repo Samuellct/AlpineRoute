@@ -10,11 +10,13 @@ import geopandas as gpd
 import httpx
 from shapely.geometry import LineString
 from rasterio.features import rasterize
+from scipy.ndimage import binary_dilation
 
 from alpineroute.config import (
     CRS_L93, OVERPASS_URL, OVERPASS_TIMEOUT,
     OSM_CACHE_DIR, OSM_CACHE_TTL_DAYS,
     TRAIL_COST_MULTIPLIERS, TRAIL_BUFFER_M,
+    TRAIL_PROXIMITY_BUFFER_M, TRAIL_PROXIMITY_PENALTY,
 )
 from alpineroute.utils import l93_to_wgs84
 
@@ -201,8 +203,9 @@ def _get_buffer_width(trail_class):
         return TRAIL_BUFFER_M["trail"]
 
 
-def rasterize_trail_cost(gdf, transform, shape):
-    """Rasterise les sentiers classes en raster float32 (1.0 = hors sentier)."""
+def rasterize_trail_cost(gdf, transform, shape, resolution=1.0):
+    """Rasterise les sentiers classes en raster float32 (1.0 = hors sentier).
+    Ajoute une penalite de proximite: px proches d'un sentier mais hors = TRAIL_PROXIMITY_PENALTY."""
     if len(gdf) == 0:
         return np.ones(shape, dtype=np.float32)
 
@@ -229,21 +232,31 @@ def rasterize_trail_cost(gdf, transform, shape):
         all_touched=True,
     )
 
-    n_trail = np.sum(result < 1.0)
+    # penalite de proximite: hors-piste pres d'un sentier = cher
+    on_trail = result < 1.0
+    prox_px = max(1, int(TRAIL_PROXIMITY_BUFFER_M / resolution))
+    struct = np.ones((prox_px * 2 + 1, prox_px * 2 + 1), dtype=bool)
+    near_trail = binary_dilation(on_trail, structure=struct)
+    off_near = near_trail & ~on_trail
+    result[off_near] = TRAIL_PROXIMITY_PENALTY
+
+    n_trail = np.sum(on_trail)
+    n_prox = np.sum(off_near)
     pct = n_trail / result.size * 100
-    logger.info("trail raster: %d sentiers, %d px couverts (%.1f%%)", len(gdf), n_trail, pct)
+    logger.info("trail raster: %d sentiers, %d trail px (%.1f%%), %d proximity px",
+                len(gdf), n_trail, pct, n_prox)
     return result
 
 
 # --- wrapper pipeline ---
 
-def get_trail_cost(bbox_l93, transform, shape):
+def get_trail_cost(bbox_l93, transform, shape, resolution=1.0):
     """Pipeline complet trails: download -> classify -> rasterize.
     Retourne None si echec (non bloquant)."""
     try:
         gdf = download_trails(bbox_l93)
         gdf = classify_trails(gdf)
-        raster = rasterize_trail_cost(gdf, transform, shape)
+        raster = rasterize_trail_cost(gdf, transform, shape, resolution=resolution)
         logger.info("trail cost ready: %s", raster.shape)
         return raster
     except Exception as e:

@@ -123,7 +123,8 @@ def compute_roughness_cost(roughness):
 # --- assemblage final ---
 
 def build_cost_surface(dem, slope, aspect, roughness, glacier_mask,
-                       month=7, acclimatized=True, landcover_cost=None):
+                       month=7, acclimatized=True, landcover_cost=None,
+                       trail_cost=None):
     """Construit la surface de cout multi-criteres. Retourne (cost, factors, nodata_mask)."""
     nodata_mask = (slope == NODATA_VALUE) | np.isnan(slope)
 
@@ -154,6 +155,11 @@ def build_cost_surface(dem, slope, aspect, roughness, glacier_mask,
         logger.info("f_landcover (WorldCover)")
         cost *= landcover_cost
 
+    # trails OSM si dispo
+    if trail_cost is not None:
+        logger.info("f_trail (OSM)")
+        cost *= trail_cost
+
     cost[nodata_mask] = NODATA_VALUE
 
     factors = {
@@ -162,6 +168,8 @@ def build_cost_surface(dem, slope, aspect, roughness, glacier_mask,
     }
     if landcover_cost is not None:
         factors["landcover"] = landcover_cost
+    if trail_cost is not None:
+        factors["trail"] = trail_cost
     for f in factors.values():
         f[nodata_mask] = NODATA_VALUE
 
@@ -170,7 +178,8 @@ def build_cost_surface(dem, slope, aspect, roughness, glacier_mask,
 
 
 def build_base_cost(dem, slope, aspect, roughness, glacier_mask,
-                    month=7, acclimatized=True, landcover_cost=None):
+                    month=7, acclimatized=True, landcover_cost=None,
+                    trail_cost=None):
     """Surface de cout sans le facteur pente Tobler.
     Utilisee par le Dijkstra anisotrope qui calcule Tobler per-edge."""
     nodata_mask = (slope == NODATA_VALUE) | np.isnan(slope)
@@ -190,6 +199,9 @@ def build_base_cost(dem, slope, aspect, roughness, glacier_mask,
 
     if landcover_cost is not None:
         base *= landcover_cost
+
+    if trail_cost is not None:
+        base *= trail_cost
 
     base[nodata_mask] = np.inf
 

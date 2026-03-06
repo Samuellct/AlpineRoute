@@ -9,7 +9,7 @@ import numpy as np
 from alpineroute.config import (
     MAX_GRID_PIXELS, MAX_GRID_PIXELS_ANISO,
     MAX_ROUTE_POINTS_API, NODATA_VALUE, DB_PATH,
-    ISOTROPIC_WARNING_DPLUS_M,
+    ISOTROPIC_WARNING_DPLUS_M, STREAM_CROSSING_PENALTY,
 )
 from alpineroute.utils import (
     compute_bbox, load_dem, wgs84_to_pixel, pixel_to_l93,
@@ -21,6 +21,8 @@ from alpineroute.dem.terrain import compute_slope_aspect, compute_roughness
 from alpineroute.cost.landcover import get_landcover_cost
 from alpineroute.cost.glacier import get_glacier_mask
 from alpineroute.cost.surface import build_cost_surface, build_base_cost
+from alpineroute.cost.trails import get_trail_cost
+from alpineroute.cost.barriers import get_barrier_masks
 from alpineroute.cost.zones import rasterize_user_zones
 from alpineroute.routing.pathfinding import (
     prepare_cost_grid, run_pathfinding, run_pathfinding_alternatives,
@@ -37,13 +39,14 @@ _last_cost_surface: dict = {}
 # poids SSE par etape (total = 100%)
 _STEP_WEIGHTS = {
     "bbox": 0,
-    "dem": 40,
-    "terrain": 15,
+    "dem": 38,
+    "terrain": 14,
     "worldcover": 5,
     "glacier": 5,
+    "osm": 5,
     "cost": 5,
     "zones": 2,
-    "pathfinding": 23,
+    "pathfinding": 21,
     "result": 5,
 }
 
@@ -208,6 +211,18 @@ def run_pipeline(req, progress_callback=None):
     glacier_mask = get_glacier_mask(bbox_l93, transform, dem.shape)
     _progress(progress_callback, "glacier", 1.0)
 
+    # -- 5b. OSM trails + barriers (si routing_mode >= 2)
+    _progress(progress_callback, "osm", 0)
+    trail_cost = None
+    barrier_masks = None
+    routing_mode = getattr(req, 'routing_mode', 2)
+
+    if routing_mode >= 2:
+        trail_cost = get_trail_cost(bbox_l93, transform, dem.shape, resolution=req.resolution)
+        _progress(progress_callback, "osm", 0.5)
+        barrier_masks = get_barrier_masks(bbox_l93, transform, dem.shape)
+    _progress(progress_callback, "osm", 1.0)
+
     # -- 6. cost surface
     _progress(progress_callback, "cost", 0)
 
@@ -216,13 +231,13 @@ def run_pipeline(req, progress_callback=None):
         base_cost, nodata_mask = build_base_cost(
             dem, slope, aspect, roughness, glacier_mask,
             month=req.month, acclimatized=req.acclimatized,
-            landcover_cost=landcover,
+            landcover_cost=landcover, trail_cost=trail_cost,
         )
         # on garde aussi la cost surface complete pour le calque
         cost_for_display, factors, _ = build_cost_surface(
             dem, slope, aspect, roughness, glacier_mask,
             month=req.month, acclimatized=req.acclimatized,
-            landcover_cost=landcover,
+            landcover_cost=landcover, trail_cost=trail_cost,
         )
         del factors
     else:
@@ -230,12 +245,29 @@ def run_pipeline(req, progress_callback=None):
         cost_for_display, factors, nodata_mask = build_cost_surface(
             dem, slope, aspect, roughness, glacier_mask,
             month=req.month, acclimatized=req.acclimatized,
-            landcover_cost=landcover,
+            landcover_cost=landcover, trail_cost=trail_cost,
         )
         del factors
         base_cost = None
 
     del slope, aspect, roughness, landcover
+
+    # -- appliquer barrieres OSM
+    if barrier_masks is not None:
+        bmask = barrier_masks["barrier_mask"]
+        smask = barrier_masks["stream_mask"]
+        # barrieres -> infranchissable
+        cost_for_display[bmask] = NODATA_VALUE
+        if base_cost is not None:
+            base_cost[bmask] = np.inf
+        # ruisseaux -> penalite
+        valid_stream = smask & (cost_for_display != NODATA_VALUE)
+        cost_for_display[valid_stream] *= STREAM_CROSSING_PENALTY
+        if base_cost is not None:
+            valid_stream_base = smask & np.isfinite(base_cost)
+            base_cost[valid_stream_base] *= STREAM_CROSSING_PENALTY
+        logger.info("barriers: %d blocked, %d stream px", bmask.sum(), smask.sum())
+
     _progress(progress_callback, "cost", 1.0)
 
     # -- 6b. zones utilisateur

@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.0.0-alpha]
+
+### Added
+- Parametre `routing_mode` dans l'API (1=hors-piste pur, 2=OSM+hors-piste)
+- ajout sentiers OSM dans le pipeline : trail_cost multiplié dans la surface de cout
+- ajout barrieres OSM : rivières/autoroutes bloquées
+- Etape SSE "osm" dans la progression du calcul
+
+### Changed
+- routing_mode=2 par defaut (OSM active)
+- Redistribution des poids SSE pour inclure l'etape OSM
+- Multiplicateurs trail fortement reduits (road 0.55->0.18, paved 0.50->0.15, etc.) pour un ratio sentier/hors-piste de 5-7x
+- Penalite de proximite (x2.5) autour des sentiers
+- Buffers trail elargis (road 2->3m, trail 1->1.5m)
+
 ## [1.3.0]
 
 ### Added

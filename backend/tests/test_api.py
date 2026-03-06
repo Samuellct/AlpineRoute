@@ -42,6 +42,29 @@ class TestGlaciers:
         assert r.status_code == 400
 
 
+class TestRoutingMode:
+    def test_routing_mode_valid(self):
+        """routing_mode 1 et 2 sont acceptes."""
+        from alpineroute.api.models import RouteRequest
+        for mode in (1, 2):
+            req = RouteRequest(
+                start_lat=45.86, start_lon=6.86,
+                end_lat=45.87, end_lon=6.87,
+                routing_mode=mode,
+            )
+            assert req.routing_mode == mode
+
+    def test_routing_mode_invalid(self):
+        """routing_mode invalide -> erreur validation."""
+        from alpineroute.api.models import RouteRequest
+        with pytest.raises(Exception):
+            RouteRequest(
+                start_lat=45.86, start_lon=6.86,
+                end_lat=45.87, end_lon=6.87,
+                routing_mode=99,
+            )
+
+
 class TestCostSurface:
     def test_cost_surface_no_calc(self, client):
         """Pas de calcul lance -> 404."""

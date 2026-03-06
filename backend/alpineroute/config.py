@@ -100,23 +100,27 @@ OSM_CACHE_DIR = os.path.join(DATA_DIR, "cache", "osm")
 OSM_CACHE_TTL_DAYS = 30
 
 TRAIL_COST_MULTIPLIERS = {
-    "paved": 0.50,
-    "gravel": 0.55,
-    "road": 0.55,
-    "trail_t1t2": 0.60,
-    "trail_default": 0.60,
-    "trail_t3": 0.70,
-    "track_soft": 0.72,
-    "trail_t4": 0.80,
-    "trail_t5": 0.90,
-    "trail_t6": 1.00,
+    "paved": 0.15,
+    "gravel": 0.20,
+    "road": 0.18,
+    "trail_t1t2": 0.25,
+    "trail_default": 0.30,
+    "trail_t3": 0.40,
+    "track_soft": 0.45,
+    "trail_t4": 0.55,
+    "trail_t5": 0.70,
+    "trail_t6": 0.85,
 }
 
 TRAIL_BUFFER_M = {
-    "road": 2.0,
-    "trail": 1.0,
+    "road": 3.0,
+    "trail": 1.5,
     "alpine": 0.5,
 }
+
+# penalite proximite sentier: px proches d'un sentier mais hors sentier
+TRAIL_PROXIMITY_BUFFER_M = 8.0
+TRAIL_PROXIMITY_PENALTY = 2.5
 
 RIVER_BUFFER_M = 5.0
 CANAL_BUFFER_M = 3.0
