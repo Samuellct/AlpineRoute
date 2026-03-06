@@ -325,8 +325,12 @@ async def api_cost_surface():
         if not np.any(valid):
             raise HTTPException(404, "surface de cout vide")
 
-        arr = np.where(valid, cost, np.nan)
-        log_cost = np.where(valid, np.log1p(arr), np.nan)
+        # separer pixels infranchissables (>= 1e6) du terrain normal
+        impassable = valid & (cost >= 1e6)
+        traversable = valid & (cost < 1e6)
+
+        arr = np.where(traversable, cost, np.nan)
+        log_cost = np.where(traversable, np.log1p(arr), np.nan)
 
         vmin = np.nanpercentile(log_cost, 2)
         vmax = np.nanpercentile(log_cost, 98)
@@ -339,11 +343,17 @@ async def api_cost_surface():
         H, W = norm.shape
         rgba = np.zeros((H, W, 4), dtype=np.uint8)
 
-        # vert (0) -> jaune (0.5) -> rouge (1)
+        # vert (0) -> jaune (0.5) -> rouge (1) pour le terrain traversable
         r = np.where(norm < 0.5, norm * 2 * 255, 255).astype(np.uint8)
         g = np.where(norm < 0.5, 255, (1 - (norm - 0.5) * 2) * 255).astype(np.uint8)
         b = np.zeros_like(r)
-        a = np.where(valid, 180, 0).astype(np.uint8)
+        a = np.where(traversable, 180, 0).astype(np.uint8)
+
+        # pixels infranchissables en noir semi-transparent
+        r[impassable] = 30
+        g[impassable] = 30
+        b[impassable] = 30
+        a[impassable] = 200
 
         rgba[:, :, 0] = r
         rgba[:, :, 1] = g

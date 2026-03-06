@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.2.0]
+
+### Changed
+- Suppression OFF_TRAIL_FACTOR
+- modifs multiplicateurs WorldCover : valeurs ajustées pour forêt, buissons, moraine, etc, eau et batiments infranchissables (1e6)
+
+### Added
+- Tests temporaires WorldCover : verif eau/bati infranchissables
+
 ## [1.1.1]
 
 ### Added

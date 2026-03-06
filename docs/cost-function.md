@@ -16,13 +16,12 @@ Le facteur principal. Basé en partie sur la hiking function de Tobler (1993).
 
 ### Vitesse de déplacement
 
-$$v = v_0 \cdot e^{-3.5 |s + 0.05|} \cdot k$$
+$$v = v_0 \cdot e^{-3.5 |s + 0.05|}$$
 
 Ou :
 - $v_0$ = 6 km/h (vitesse de base)
 - $s$ = gradient
 - 0.05 = gradient optimal (descente douce a ~2.86°)
-- $k$ = 0.6 (facteur hors-sentier)
 
 Le cout est normalisé pour que terrain plat = 1.0 :
 
@@ -131,17 +130,17 @@ Multiplicateur additionnel basé sur les classes ESA WorldCover 10 m.
 
 | Code | Classe | Multiplicateur |
 |------|--------|---------------|
-| 10 | Foret | 2.5 |
-| 20 | Buissons | 1.8 |
-| 30 | Herbe / alpage | 1.2 |
-| 40 | Cultures | 1.0 |
-| 50 | Bati | 20.0 |
-| 60 | Moraine / eboulis | 1.5 |
-| 70 | Neige / glace | 1.3 |
-| 80 | Eau | 50.0 |
-| 90 | Zone humide | 3.0 |
+| 10 | Foret | 3.5 |
+| 20 | Buissons | 2.5 |
+| 30 | Herbe / alpage | 1.1 |
+| 40 | Cultures | 1.5 |
+| 50 | Bati | 1e6 (infranchissable) |
+| 60 | Moraine / eboulis | 3.0 |
+| 70 | Neige / glace | 1.5 |
+| 80 | Eau | 1e6 (infranchissable) |
+| 90 | Zone humide | 5.0 |
 | 95 | Mangrove | 3.0 |
-| 100 | Mousse / lichen | 1.3 |
+| 100 | Mousse / lichen | 1.2 |
 | 0 | Nodata | 1.0 |
 
 Source : `backend/alpineroute/config.py` (`WORLDCOVER_MULTIPLIERS`)
@@ -154,11 +153,9 @@ Tous les paramètres sont centralisés dans `backend/alpineroute/config.py` :
 |-----------|--------|-------------|
 | `TOBLER_BASE_SPEED_KMH` | 6.0 | Vitesse de base Tobler (km/h) |
 | `TOBLER_OPTIMAL_GRADIENT` | 0.05 | Gradient optimal (environ 2.86° descente) |
-| `OFF_TRAIL_FACTOR` | 0.6 | Reduction vitesse hors-piste |
-| `STEEP_SLOPE_THRESHOLD_DEG` | 45 | Seuil pente raide (deg) |
-| `STEEP_SLOPE_MULTIPLIER` | 5.0 | Multiplicateur pente raide |
-| `CRITICAL_SLOPE_DEG` | 60 | Seuil pente critique (deg) |
-| `CRITICAL_SLOPE_MULTIPLIER` | 50.0 | Multiplicateur pente critique |
+| `STEEP_ONSET_DEG` | 35 | Debut penalite progressive (deg) |
+| `STEEP_FULL_DEG` | 55 | Penalite maximale atteinte (deg) |
+| `STEEP_MAX_MULTIPLIER` | 20.0 | Multiplicateur max pente raide |
 | `HYPOXIA_ALTITUDE_THRESHOLD` | 1500 | Seuil altitude hypoxie (m) |
 | `HYPOXIA_RATE_ACCLIMATIZED` | 0.03 | Taux perte acclimaté |
 | `HYPOXIA_RATE_NOT_ACCLIMATIZED` | 0.063 | Taux perte non acclimaté |
@@ -176,7 +173,5 @@ Tous les paramètres sont centralisés dans `backend/alpineroute/config.py` :
 
 Plusieurs points a améliorer pour les V1.1 et V2.0:
 
-- **Modèle isotrope** : Le coût ne dépend pas de la direction de déplacement. Monter et descendre une pente à 30 degrés devrait avoir des couts différents (prévu V1.1)
 - **Pas de détection de crevasses** : le masque RGI donne les contours glaciaires mais pas la structure interne. Prévu de tester une approche Deep Learning pour la V2.0 (https://doi.org/10.1016/j.jag.2025.104495).
-- **Multiplicateurs WorldCover** : pas encore cortement calibres
 - **Saisonnalité simplifiée** : le modèle aspect/saison donne une info basique, modele python de radiation solaire en cours de tests pour la V2.0

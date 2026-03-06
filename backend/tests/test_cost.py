@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 
 from alpineroute.config import (
-    NODATA_VALUE,
+    NODATA_VALUE, WORLDCOVER_MULTIPLIERS,
     STEEP_ONSET_DEG, STEEP_FULL_DEG, STEEP_MAX_MULTIPLIER,
     GLACIER_COST_FLAT, GLACIER_COST_STEEP, GLACIER_COST_VERY_STEEP,
     ROUGHNESS_SCALE, ROUGHNESS_CLAMP,
@@ -16,6 +16,7 @@ from alpineroute.cost.surface import (
     compute_roughness_cost,
     build_cost_surface,
 )
+from alpineroute.cost.landcover import build_landcover_cost
 
 
 # ---- slope cost (Tobler) ----
@@ -219,3 +220,28 @@ class TestBuildCostSurface:
             flat_dem, slope, aspect, roughness, glacier_mask)
         assert cost[5, 5] == NODATA_VALUE
         assert nodata_mask[5, 5]
+
+
+# ---- WorldCover infranchissable ----
+
+class TestWorldCoverImpassable:
+    def test_water_impassable(self):
+        assert WORLDCOVER_MULTIPLIERS[80] >= 1e6
+
+    def test_built_impassable(self):
+        assert WORLDCOVER_MULTIPLIERS[50] >= 1e6
+
+    def test_water_grid_cost(self):
+        # grille 100% eau -> cout >= 1e6 partout
+        grid = np.full((5, 5), 80, dtype=np.uint8)
+        cost = build_landcover_cost(grid)
+        assert np.all(cost >= 1e6)
+
+    def test_built_grid_cost(self):
+        grid = np.full((5, 5), 50, dtype=np.uint8)
+        cost = build_landcover_cost(grid)
+        assert np.all(cost >= 1e6)
+
+    def test_grass_reasonable(self):
+        # herbe (code 30) doit rester raisonnable
+        assert WORLDCOVER_MULTIPLIERS[30] < 2.0

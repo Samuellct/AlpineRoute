@@ -1,5 +1,5 @@
 /* zones de danger dans l'onglet calcul*/
-import { useEffect } from 'react'
+import { useEffect, useCallback } from 'react'
 import { useApp } from '../context'
 import { fetchZones, deleteZone } from '../api'
 import type { ZoneType } from '../types'
@@ -17,14 +17,14 @@ const ZONE_LABELS: Record<ZoneType, string> = {
 export default function ZonePanel() {
   const { state, dispatch } = useApp()
 
-  async function loadZones() {
+  const loadZones = useCallback(async () => {
     try {
       const zones = await fetchZones()
       dispatch({ type: 'SET_ZONES', zones })
     } catch (e) {
       console.warn('zones fetch failed', e)
     }
-  }
+  }, [dispatch])
 
   // fetch au mount
   useEffect(() => {

@@ -42,7 +42,6 @@ BBOX_ALIGN_M = 1000        # aligner sur les dalles IGN (1km)
 # ---- cost function : Tobler ----
 TOBLER_BASE_SPEED_KMH = 6.0
 TOBLER_OPTIMAL_GRADIENT = 0.05
-OFF_TRAIL_FACTOR = 0.6
 GRADIENT_CLIP = 10.0  # |gradient| max avant Tobler
 
 # ---- cost function : penalite progressive pour les pentes ----
@@ -79,17 +78,17 @@ ROUGHNESS_SCALE = 0.8               # cost = 1 + scale * TRI
 
 # ---- cost function : WorldCover (ESA 2021) ----
 WORLDCOVER_MULTIPLIERS = {
-    10: 2.5,    # foret
-    20: 1.8,    # buissons
-    30: 1.2,    # herbe/alpage
-    40: 5.0,     # cultures
-    50: 20.0,    # bati
-    60: 1.5,    # moraine/eboulis
-    70: 1.3,    # neige/glace
-    80: 50.0,   # eau
-    90: 3.0,    # zone humide
+    10: 3.5,    # foret
+    20: 2.5,    # buissons
+    30: 1.1,    # herbe/alpage
+    40: 1.5,    # cultures
+    50: 1e6,    # bati - infranchissable
+    60: 3.0,    # moraine/eboulis
+    70: 1.5,    # neige/glace
+    80: 1e6,    # eau - infranchissable
+    90: 5.0,    # zone humide
     95: 3.0,    # mangrove
-    100: 1.3,   # mousse/lichen
+    100: 1.2,   # mousse/lichen
     0: 1.0,     # nodata
 }
 WORLDCOVER_URL_PATTERN = "https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/map/ESA_WorldCover_10m_2021_v200_{tile}_Map.tif"

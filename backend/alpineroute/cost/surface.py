@@ -5,7 +5,7 @@ import logging
 
 from alpineroute.config import (
     NODATA_VALUE,
-    TOBLER_BASE_SPEED_KMH, TOBLER_OPTIMAL_GRADIENT, OFF_TRAIL_FACTOR,
+    TOBLER_BASE_SPEED_KMH, TOBLER_OPTIMAL_GRADIENT,
     GRADIENT_CLIP,
     STEEP_ONSET_DEG, STEEP_FULL_DEG, STEEP_MAX_MULTIPLIER,
     HYPOXIA_ALTITUDE_THRESHOLD, HYPOXIA_MODERATE_THRESHOLD,
@@ -32,13 +32,13 @@ def compute_slope_cost(slope_deg):
 
     v = TOBLER_BASE_SPEED_KMH * np.exp(
         -3.5 * np.abs(gradient + TOBLER_OPTIMAL_GRADIENT)
-    ) * OFF_TRAIL_FACTOR
+    )
     v = np.maximum(v, 0.01)
 
     # normalise: cout=1.0 sur terrain plat
     v_flat = TOBLER_BASE_SPEED_KMH * np.exp(
         -3.5 * TOBLER_OPTIMAL_GRADIENT
-    ) * OFF_TRAIL_FACTOR
+    )
     cost = v_flat / v
 
     # penalite progressive pr les pentes
@@ -132,7 +132,7 @@ def build_cost_surface(dem, slope, aspect, roughness, glacier_mask,
     rough_clean = np.where(nodata_mask, 0, roughness)
     dem_clean = np.where(nodata_mask, 0, dem)
 
-    logger.info("f_slope (Tobler hors-sentier)")
+    logger.info("f_slope (Tobler)")
     f_slope = compute_slope_cost(slope_clean)
 
     logger.info("f_altitude (hypoxie)")

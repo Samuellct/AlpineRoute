@@ -13,7 +13,7 @@ from skimage.morphology import disk
 from alpineroute.config import (
     NODATA_VALUE, COST_NODATA_VALUE,
     PENALTY_MULTIPLIER, PENALTY_BUFFER_PX, PENALTY_BUFFER_M,
-    TOBLER_BASE_SPEED_KMH, TOBLER_OPTIMAL_GRADIENT, OFF_TRAIL_FACTOR,
+    TOBLER_BASE_SPEED_KMH, TOBLER_OPTIMAL_GRADIENT,
     GRADIENT_CLIP,
     STEEP_ONSET_DEG, STEEP_FULL_DEG, STEEP_MAX_MULTIPLIER,
 )
@@ -127,8 +127,7 @@ _NEIGHBOR_DISTS = [
 
 # vitesse a plat (ref pour normalisation du cout Tobler)
 _V_FLAT = (TOBLER_BASE_SPEED_KMH
-           * math.exp(-3.5 * TOBLER_OPTIMAL_GRADIENT)
-           * OFF_TRAIL_FACTOR)
+           * math.exp(-3.5 * TOBLER_OPTIMAL_GRADIENT))
 
 def _tobler_cost_vectorized(gradient):
     """Tobler directionnel vectorise.
@@ -137,7 +136,7 @@ def _tobler_cost_vectorized(gradient):
 
     v = TOBLER_BASE_SPEED_KMH * np.exp(
         -3.5 * np.abs(gradient + TOBLER_OPTIMAL_GRADIENT)
-    ) * OFF_TRAIL_FACTOR
+    )
     v = np.maximum(v, 0.01)
     cost = _V_FLAT / v
 

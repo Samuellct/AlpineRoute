@@ -220,18 +220,16 @@ def compute_distance_2d(coords):
 
 
 def compute_path_stats(path_coords, dem, transform, glacier_mask=None,
-                       tobler_speed=None, tobler_gradient=None, off_trail=None):
+                       tobler_speed=None, tobler_gradient=None):
     """Stats completes d'un trajet pixel.
     Retourne (stats_dict, arrays_dict) avec cum_dist, elevations etc."""
     from alpineroute.config import (
-        TOBLER_BASE_SPEED_KMH, TOBLER_OPTIMAL_GRADIENT, OFF_TRAIL_FACTOR,
+        TOBLER_BASE_SPEED_KMH, TOBLER_OPTIMAL_GRADIENT,
     )
     if tobler_speed is None:
         tobler_speed = TOBLER_BASE_SPEED_KMH
     if tobler_gradient is None:
         tobler_gradient = TOBLER_OPTIMAL_GRADIENT
-    if off_trail is None:
-        off_trail = OFF_TRAIL_FACTOR
 
     rows = path_coords[:, 0]
     cols = path_coords[:, 1]
@@ -259,7 +257,7 @@ def compute_path_stats(path_coords, dem, transform, glacier_mask=None,
 
     # temps Tobler
     gradient = np.where(seg_dist_2d > 0, dz / seg_dist_2d, 0)
-    v = tobler_speed * np.exp(-3.5 * np.abs(gradient + tobler_gradient)) * off_trail
+    v = tobler_speed * np.exp(-3.5 * np.abs(gradient + tobler_gradient))
     v = np.maximum(v, 0.01)
     seg_time_h = (seg_dist_2d / 1000.0) / v
     total_time_h = float(np.sum(seg_time_h))
