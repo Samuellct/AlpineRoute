@@ -11,7 +11,8 @@ from alpineroute.db.schema import init_db
 def client(tmp_db):
     """TestClient avec DB temporaire."""
     with patch("alpineroute.api.main.DB_PATH", tmp_db), \
-         patch("alpineroute.api.main.init_db", lambda: init_db(tmp_db)):
+         patch("alpineroute.api.main.init_db", lambda: init_db(tmp_db)), \
+         patch("alpineroute.api.main.reload_index", return_value={"routes": 0, "segments": 0, "skipped": 0}):
         with TestClient(app) as c:
             yield c
 
@@ -104,3 +105,31 @@ class TestZonesCRUD:
     def test_delete_zone_not_found(self, client):
         r = client.delete("/zones/9999")
         assert r.status_code == 404
+
+
+class TestAlpineRoutes:
+    def test_list_empty(self, client):
+        r = client.get("/alpine-routes")
+        assert r.status_code == 200
+        assert r.json()["count"] == 0
+
+    def test_summits_empty(self, client):
+        r = client.get("/alpine-routes/summits")
+        assert r.status_code == 200
+        assert r.json()["count"] == 0
+
+    def test_geojson_empty(self, client):
+        r = client.get("/alpine-routes/geojson")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["type"] == "FeatureCollection"
+        assert data["features"] == []
+
+    def test_get_nonexistent(self, client):
+        r = client.get("/alpine-routes/9999")
+        assert r.status_code == 404
+
+    def test_reload_index(self, client):
+        r = client.post("/admin/reload-index")
+        assert r.status_code == 200
+        assert r.json()["status"] == "ok"

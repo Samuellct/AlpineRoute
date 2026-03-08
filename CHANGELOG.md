@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.0.0-alpha.4]
+
+### Added
+- Indexation traces GPX (index.json + sync SQLite)
+- Module alpine/routes.py : parsing GPX, conversion GeoJSON, cotations
+- Tables alpine_routes + terrain_segments
+- Endpoints /alpine-routes, /alpine-routes/summits, /alpine-routes/{id}, /alpine-routes/{id}/gpx, /admin/reload-index
+- POST /admin/reload-index
+
 ## [2.0.0-alpha.3]
 
 ### Added

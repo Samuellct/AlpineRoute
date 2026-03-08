@@ -272,6 +272,111 @@ def get_cached_tiles(db_path, source, resolution):
         conn.close()
 
 
+# ---- Alpine routes ----
+
+def list_alpine_routes(db_path, massif=None, summit=None):
+    """Liste les traces alpine sans geojson (trop lourd)."""
+    conn = get_connection(db_path)
+    try:
+        conn.row_factory = _dict_factory
+        conditions = []
+        params = []
+        if massif:
+            conditions.append("massif = ?")
+            params.append(massif)
+        if summit:
+            conditions.append("summit = ?")
+            params.append(summit)
+
+        where = ""
+        if conditions:
+            where = "WHERE " + " AND ".join(conditions)
+
+        rows = conn.execute(f"""
+            SELECT id, gpx_path, massif, summit, voie, grade, grade_ord,
+                   distance_m, dplus_m, start_lat, start_lon, end_lat, end_lon,
+                   notes, created_at
+            FROM alpine_routes {where}
+            ORDER BY grade_ord, summit
+        """, params).fetchall()
+        return rows
+    finally:
+        conn.close()
+
+
+def get_alpine_route(db_path, route_id):
+    """Detail d'une trace avec geojson."""
+    conn = get_connection(db_path)
+    try:
+        conn.row_factory = _dict_factory
+        row = conn.execute(
+            "SELECT * FROM alpine_routes WHERE id = ?", (route_id,)
+        ).fetchone()
+        if row and isinstance(row.get("geojson"), str):
+            try:
+                row["geojson"] = json.loads(row["geojson"])
+            except json.JSONDecodeError:
+                pass
+        return row
+    finally:
+        conn.close()
+
+
+def list_summits(db_path):
+    """Sommets avec nombre de routes et cotations."""
+    conn = get_connection(db_path)
+    try:
+        conn.row_factory = _dict_factory
+        rows = conn.execute("""
+            SELECT summit, massif, COUNT(*) as route_count,
+                   GROUP_CONCAT(grade) as grades
+            FROM alpine_routes
+            GROUP BY summit, massif
+            ORDER BY massif, summit
+        """).fetchall()
+        return rows
+    finally:
+        conn.close()
+
+
+def get_alpine_routes_geojson(db_path, massif=None, summit=None):
+    """FeatureCollection de toutes les traces filtrees."""
+    conn = get_connection(db_path)
+    try:
+        conn.row_factory = _dict_factory
+        conditions = []
+        params = []
+        if massif:
+            conditions.append("massif = ?")
+            params.append(massif)
+        if summit:
+            conditions.append("summit = ?")
+            params.append(summit)
+
+        where = ""
+        if conditions:
+            where = "WHERE " + " AND ".join(conditions)
+
+        rows = conn.execute(
+            f"SELECT geojson FROM alpine_routes {where}", params
+        ).fetchall()
+
+        features = []
+        for row in rows:
+            gj = row.get("geojson")
+            if gj and isinstance(gj, str):
+                try:
+                    features.append(json.loads(gj))
+                except json.JSONDecodeError:
+                    pass
+            elif isinstance(gj, dict):
+                features.append(gj)
+
+        return {"type": "FeatureCollection", "features": features}
+    finally:
+        conn.close()
+
+
 # row factory -> dict
 def _dict_factory(cursor, row):
     return {col[0]: row[i] for i, col in enumerate(cursor.description)}

@@ -67,9 +67,45 @@ CREATE TABLE IF NOT EXISTS preferences (
     updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
+-- traces alpine indexees depuis index.json
+CREATE TABLE IF NOT EXISTS alpine_routes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    gpx_path TEXT NOT NULL UNIQUE,
+    massif TEXT,
+    summit TEXT,
+    voie TEXT,
+    grade TEXT,
+    grade_ord INTEGER,
+    distance_m REAL,
+    dplus_m REAL,
+    start_lat REAL, start_lon REAL,
+    end_lat REAL, end_lon REAL,
+    geojson TEXT,
+    notes TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+
+-- segments terrain (Phase 7)
+CREATE TABLE IF NOT EXISTS terrain_segments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    gpx_path TEXT NOT NULL UNIQUE,
+    start_name TEXT,
+    end_name TEXT,
+    segment_type TEXT,
+    trail_cost REAL,
+    distance_m REAL,
+    dplus_m REAL,
+    geojson TEXT,
+    notes TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_routes_created ON routes(created_at);
 CREATE INDEX IF NOT EXISTS idx_dem_cache_source ON dem_cache(source, tile_name);
 CREATE INDEX IF NOT EXISTS idx_user_zones_type ON user_zones(zone_type, active);
+CREATE INDEX IF NOT EXISTS idx_alpine_routes_massif ON alpine_routes(massif);
+CREATE INDEX IF NOT EXISTS idx_alpine_routes_summit ON alpine_routes(summit);
+CREATE INDEX IF NOT EXISTS idx_terrain_segments_type ON terrain_segments(segment_type);
 """
 
 

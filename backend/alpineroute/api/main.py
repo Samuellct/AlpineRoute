@@ -16,9 +16,9 @@ import gpxpy
 import gpxpy.gpx
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, Response
+from fastapi.responses import StreamingResponse, Response, FileResponse
 
-from alpineroute.config import DEM_CACHE_DIR, DB_PATH, CORS_ORIGINS, CRS_WGS84, NODATA_VALUE
+from alpineroute.config import DEM_CACHE_DIR, DB_PATH, CORS_ORIGINS, CRS_WGS84, NODATA_VALUE, GPX_DIR
 from alpineroute.api.models import RouteRequest, ZoneCreate, ZoneUpdate
 from alpineroute import pipeline as _pipeline
 from alpineroute.pipeline import run_pipeline
@@ -28,7 +28,9 @@ from alpineroute.db.schema import init_db
 from alpineroute.db.crud import (
     get_route, list_routes, delete_route, save_route,
     save_zone, list_zones, get_zone, update_zone, delete_zone,
+    list_alpine_routes, get_alpine_route, list_summits, get_alpine_routes_geojson,
 )
+from alpineroute.alpine.index import reload_index
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +44,12 @@ jobs: dict = {}
 async def lifespan(app):
     os.makedirs(DEM_CACHE_DIR, exist_ok=True)
     init_db()
+    # sync traces GPX au demarrage
+    try:
+        result = reload_index()
+        logger.info("alpine index: %s", result)
+    except Exception as e:
+        logger.warning("alpine index load: %s", e)
     logger.info("AlpineRoute API v0.4 ready")
     yield
     jobs.clear()
@@ -442,3 +450,63 @@ async def api_delete_zone(zone_id: int):
     if not ok:
         raise HTTPException(404, f"zone {zone_id} not found")
     return {"status": "deleted", "id": zone_id}
+
+
+# --- Alpine routes (traces GPX indexees) ---
+
+@app.get("/alpine-routes")
+async def api_list_alpine_routes(
+    massif: Optional[str] = Query(None),
+    summit: Optional[str] = Query(None),
+):
+    rows = list_alpine_routes(DB_PATH, massif=massif, summit=summit)
+    return {"routes": rows, "count": len(rows)}
+
+
+# routes fixes AVANT la parametrique /{route_id}
+@app.get("/alpine-routes/summits")
+async def api_list_summits():
+    rows = list_summits(DB_PATH)
+    return {"summits": rows, "count": len(rows)}
+
+
+@app.get("/alpine-routes/geojson")
+async def api_alpine_routes_geojson(
+    massif: Optional[str] = Query(None),
+    summit: Optional[str] = Query(None),
+):
+    fc = get_alpine_routes_geojson(DB_PATH, massif=massif, summit=summit)
+    return fc
+
+
+@app.get("/alpine-routes/{route_id}")
+async def api_get_alpine_route(route_id: int):
+    row = get_alpine_route(DB_PATH, route_id)
+    if row is None:
+        raise HTTPException(404, f"alpine route {route_id} not found")
+    return row
+
+
+@app.get("/alpine-routes/{route_id}/gpx")
+async def api_alpine_route_gpx(route_id: int):
+    row = get_alpine_route(DB_PATH, route_id)
+    if row is None:
+        raise HTTPException(404, f"alpine route {route_id} not found")
+    gpx_path = os.path.join(GPX_DIR, row["gpx_path"])
+    if not os.path.isfile(gpx_path):
+        raise HTTPException(404, f"fichier gpx introuvable: {row['gpx_path']}")
+    return FileResponse(
+        gpx_path,
+        media_type="application/gpx+xml",
+        filename=os.path.basename(gpx_path),
+    )
+
+
+@app.post("/admin/reload-index")
+async def api_reload_index():
+    try:
+        result = reload_index()
+        return {"status": "ok", **result}
+    except Exception as e:
+        logger.exception("reload-index error")
+        raise HTTPException(500, f"reload error: {e}")

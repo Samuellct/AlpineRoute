@@ -11,6 +11,8 @@ RGI_DIR = os.path.join(DATA_DIR, "rgi")
 DERIVED_DIR = os.path.join(DATA_DIR, "derived")
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 DB_PATH = os.environ.get("ALPINEROUTE_DB_PATH", os.path.join(DATA_DIR, "alpineroute.db"))
+GPX_DIR = os.path.join(DATA_DIR, "gpx")
+GPX_INDEX_PATH = os.path.join(GPX_DIR, "index.json")
 
 # ---- CRS ----
 CRS_L93 = "EPSG:2154"
