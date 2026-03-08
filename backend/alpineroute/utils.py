@@ -26,6 +26,9 @@ class PointOutOfBoundsError(ValueError):
 class DownloadError(RuntimeError):
     pass
 
+class ValhallaError(RuntimeError):
+    pass
+
 
 # --- logging ---
 

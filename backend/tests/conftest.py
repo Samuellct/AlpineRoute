@@ -8,6 +8,10 @@ from rasterio.transform import from_origin
 from alpineroute.db.schema import init_db
 
 
+def pytest_configure(config):
+    config.addinivalue_line("markers", "integration: needs external services")
+
+
 # -- DEM synthetiques --
 
 @pytest.fixture

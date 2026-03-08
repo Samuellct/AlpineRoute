@@ -129,6 +129,12 @@ BRIDGE_BUFFER_M = 3.0
 MOTORWAY_BUFFER_M = 5.0
 STREAM_CROSSING_PENALTY = 6.0
 
+# ---- Valhalla (routage reseau) ----
+VALHALLA_BASE_URL = os.environ.get("ALPINEROUTE_VALHALLA_URL", "http://localhost:8002")
+VALHALLA_TIMEOUT_S = 30
+VALHALLA_MAX_HIKING_DIFFICULTY = 6   # echelle 0-6 Valhalla pr les chemins T1-T6 osm
+VALHALLA_PBF_URL = "http://download.geofabrik.de/europe/france/rhone-alpes-latest.osm.pbf"
+
 # ---- hillshade ----
 HILLSHADE_AZIMUTH = 315
 HILLSHADE_ALTITUDE = 45

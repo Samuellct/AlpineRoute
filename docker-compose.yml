@@ -1,4 +1,25 @@
 services:
+  valhalla:
+    image: ghcr.io/valhalla/valhalla-scripted:latest
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    volumes:
+      - valhalla_tiles:/custom_files
+    environment:
+      - tile_urls=http://download.geofabrik.de/europe/france/rhone-alpes-latest.osm.pbf
+      - use_tiles_ignore_pbf=True
+      - serve_tiles=True
+      - build_elevation=True
+      - build_admins=True
+      - force_rebuild=False
+    healthcheck:
+      test: curl -sf http://localhost:8002/status || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 300s
+
   backend:
     restart: unless-stopped
     build:
@@ -11,6 +32,10 @@ services:
     environment:
       - ALPINEROUTE_HOST=0.0.0.0
       - ALPINEROUTE_DATA_DIR=/app/data
+      - ALPINEROUTE_VALHALLA_URL=http://valhalla:8002
+    depends_on:
+      valhalla:
+        condition: service_healthy
 
   frontend:
     restart: unless-stopped
@@ -21,3 +46,6 @@ services:
       - "3000:80"
     depends_on:
       - backend
+
+volumes:
+  valhalla_tiles:

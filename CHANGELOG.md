@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.0.0-alpha.2]
+
+Rework complet du moteur de calcul. Passage de 100% raster à graphes (Valhalla) + raster.
+
+### Added
+- Docker Valhalla pour fraph reseau OSM
+- Client Python Valhalla : route, locate, status (routing/network.py)
+- Config VALHALLA_BASE_URL configurable par env var
+- Tests unitaires + integration network
+
+### Changed
+- docker-compose : ajout service valhalla + depends_on backend
+
 ## [2.0.0-alpha]
 
 ### Added

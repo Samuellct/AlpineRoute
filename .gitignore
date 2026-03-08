@@ -19,6 +19,7 @@ projet.md
 *.las
 *.jp2
 data/
+data/osm/*.pbf
 bugs/
 Phase_00_testsInitiaux/
 
