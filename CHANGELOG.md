@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.0.0-alpha.5]
+
+### Added
+- Segments terrain : rasterisation GPX custom + merge avec sentiers OSM
+- Ponts raster : detection detours Valhalla + pathfinding local
+
+### Changed
+- Schema terrain_segments : ajout colonnes start/end lat/lon
+
 ## [2.0.0-alpha.4]
 
 ### Added

@@ -93,16 +93,20 @@ def sync_to_sqlite(entries, db_path=None):
                 n_routes += 1
 
             elif entry["type"] == "segment":
+                geojson = route_to_geojson(entry, points)
                 conn.execute("""
                     INSERT INTO terrain_segments
                         (gpx_path, start_name, end_name, segment_type,
-                         trail_cost, distance_m, dplus_m, geojson, notes)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                         trail_cost, distance_m, dplus_m,
+                         start_lat, start_lon, end_lat, end_lon,
+                         geojson, notes)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     gpx_file, entry.get("start_name"), entry.get("end_name"),
                     entry.get("segment_type"), entry.get("trail_cost"),
                     round(dist_m, 1), round(dplus_m, 1),
-                    None,  # geojson segment pas encore utile
+                    start[0], start[1], end[0], end[1],
+                    json.dumps(geojson),
                     entry.get("notes"),
                 ))
                 n_segments += 1

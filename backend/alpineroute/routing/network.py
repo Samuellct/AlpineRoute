@@ -138,11 +138,22 @@ def valhalla_route(start_wgs84, end_wgs84, max_difficulty=None):
         shape_enc = leg["shape"]
         coords = decode_valhalla_shape(shape_enc)
         summary = trip["summary"]
+
+        # parse maneuvers pour detection detours (Phase 7)
+        maneuvers = []
+        for m in leg.get("maneuvers", []):
+            maneuvers.append({
+                "begin_shape_index": m.get("begin_shape_index", 0),
+                "end_shape_index": m.get("end_shape_index", 0),
+                "length_km": m.get("length", 0),
+            })
+
         return {
             "coords": coords,
             "distance_km": summary["length"],
             "duration_s": summary["time"],
             "shape_encoded": shape_enc,
+            "maneuvers": maneuvers,
         }
     except (KeyError, IndexError) as e:
         raise ValhallaError(f"Reponse Valhalla inattendue: {e}")

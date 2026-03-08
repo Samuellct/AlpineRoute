@@ -29,6 +29,7 @@ from alpineroute.db.crud import (
     get_route, list_routes, delete_route, save_route,
     save_zone, list_zones, get_zone, update_zone, delete_zone,
     list_alpine_routes, get_alpine_route, list_summits, get_alpine_routes_geojson,
+    list_terrain_segments, get_terrain_segments_geojson,
 )
 from alpineroute.alpine.index import reload_index
 
@@ -450,6 +451,24 @@ async def api_delete_zone(zone_id: int):
     if not ok:
         raise HTTPException(404, f"zone {zone_id} not found")
     return {"status": "deleted", "id": zone_id}
+
+
+# --- Terrain segments ---
+
+@app.get("/terrain-segments")
+async def api_list_terrain_segments(
+    segment_type: Optional[str] = Query(None),
+):
+    rows = list_terrain_segments(DB_PATH, segment_type=segment_type)
+    return {"segments": rows, "count": len(rows)}
+
+
+@app.get("/terrain-segments/geojson")
+async def api_terrain_segments_geojson(
+    segment_type: Optional[str] = Query(None),
+):
+    fc = get_terrain_segments_geojson(DB_PATH, segment_type=segment_type)
+    return fc
 
 
 # --- Alpine routes (traces GPX indexees) ---

@@ -95,6 +95,10 @@ CREATE TABLE IF NOT EXISTS terrain_segments (
     trail_cost REAL,
     distance_m REAL,
     dplus_m REAL,
+    start_lat REAL,
+    start_lon REAL,
+    end_lat REAL,
+    end_lon REAL,
     geojson TEXT,
     notes TEXT,
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
@@ -116,6 +120,15 @@ def init_db(db_path=None):
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
     conn = sqlite3.connect(db_path)
     conn.executescript(SCHEMA_SQL)
+
+    # migration Phase 7: colonnes spatiales sur terrain_segments
+    for col in ("start_lat", "start_lon", "end_lat", "end_lon"):
+        try:
+            conn.execute(f"ALTER TABLE terrain_segments ADD COLUMN {col} REAL")
+        except Exception:
+            pass  # colonne deja presente
+    conn.commit()
+
     conn.close()
     logger.info("db initialisee: %s", db_path)
     return db_path

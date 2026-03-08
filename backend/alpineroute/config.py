@@ -139,6 +139,11 @@ VALHALLA_PBF_URL = "http://download.geofabrik.de/europe/france/rhone-alpes-lates
 VALHALLA_DETOUR_THRESHOLD = 3.0   # ratio dist_valhalla / vol_oiseau
 VALHALLA_MIN_DIRECT_M = 500       # en dessous, pas de test detour
 
+# ponts raster (Phase 7) -- comble les gaps OSM courts
+BRIDGE_MAX_DISTANCE_M = 300       # dist max directe pour tenter un pont
+BRIDGE_DETOUR_RATIO = 2.5         # ratio leg/direct pour detecter un detour
+BRIDGE_BBOX_MARGIN_M = 200        # marge autour du pont pour le pathfinding local
+
 # ---- hillshade ----
 HILLSHADE_AZIMUTH = 315
 HILLSHADE_ALTITUDE = 45

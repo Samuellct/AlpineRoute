@@ -31,7 +31,13 @@ from alpineroute.routing.pathfinding import (
 from alpineroute.routing.network import (
     valhalla_available, valhalla_route, is_detour_excessive,
 )
-from alpineroute.routing.hybrid import valhalla_to_geojson_feature
+from alpineroute.routing.hybrid import (
+    valhalla_to_geojson_feature, detect_detour_segments,
+    compute_raster_bridge, apply_bridges,
+)
+from alpineroute.alpine.segments import (
+    load_segments_for_bbox, rasterize_segments, merge_trail_layers,
+)
 from alpineroute.db.crud import list_zones, save_route
 from alpineroute.utils import ValhallaError
 
@@ -156,8 +162,9 @@ def run_pipeline(req, progress_callback=None):
             vr = valhalla_route(start, end)
             if vr is not None:
                 if is_detour_excessive(vr["distance_km"], start, end):
-                    # cas C: detour -> full raster (ponts raster = Phase 7)
+                    # cas C: detour -> raster, mais on garde vr pour tenter des ponts
                     strategy = "raster"
+                    valhalla_result = vr
                 else:
                     # cas A: route Valhalla OK
                     strategy = "network"
@@ -301,6 +308,21 @@ def run_pipeline(req, progress_callback=None):
     trail_cost = get_trail_cost(bbox_l93, transform, dem.shape, resolution=req.resolution)
     _progress(progress_callback, "osm", 0.5)
     barrier_masks = get_barrier_masks(bbox_l93, transform, dem.shape)
+    _progress(progress_callback, "osm", 0.8)
+
+    # -- 5c. segments terrain (traces GPX custom)
+    segments_loaded = False
+    try:
+        segments = load_segments_for_bbox(bbox_l93)
+        if segments:
+            seg_cost = rasterize_segments(segments, transform, dem.shape, resolution=req.resolution)
+            trail_cost = merge_trail_layers(trail_cost, seg_cost)
+            del seg_cost
+            segments_loaded = True
+            logger.info("segments terrain: %d segments merged", len(segments))
+    except Exception as e:
+        logger.warning("segments terrain echec (non bloquant): %s", e)
+
     _progress(progress_callback, "osm", 1.0)
 
     # -- 6. cost surface
@@ -378,8 +400,79 @@ def run_pipeline(req, progress_callback=None):
         "shape": cost_for_display.shape,
     }
 
+    # -- 6c. ponts raster (si Valhalla avait un detour)
+    bridge_feature = None
+    if valhalla_result is not None and strategy == "raster":
+        try:
+            detours = detect_detour_segments(valhalla_result)
+            if detours:
+                bridges = []
+                for d in detours:
+                    br = compute_raster_bridge(
+                        d["start"], d["end"],
+                        cost_for_display, transform, dem, glacier_mask, req.resolution)
+                    bridges.append(br)
+                if any(br is not None for br in bridges):
+                    hybrid_coords = apply_bridges(valhalla_result, detours, bridges)
+                    if hybrid_coords is not None:
+                        # construire le feature GeoJSON depuis coords assemblees
+                        bridge_feature = valhalla_to_geojson_feature(hybrid_coords)
+                        bridge_feature["properties"]["strategy"] = "hybrid_bridge"
+                        bridge_feature["properties"]["n_bridges"] = hybrid_coords.get("n_bridges", 0)
+                        strategy = "hybrid_bridge"
+        except Exception as e:
+            logger.warning("ponts raster echec (fallback raster): %s", e)
+
     # -- 7. pathfinding
     _progress(progress_callback, "pathfinding", 0)
+
+    # si ponts raster ont reussi, pas besoin du pathfinding complet
+    if bridge_feature is not None:
+        _progress(progress_callback, "pathfinding", 1.0)
+        _progress(progress_callback, "result", 0)
+
+        layers_used = ["dem", "terrain", "valhalla"]
+        if trail_cost is not None:
+            layers_used.append("osm_trails")
+        if segments_loaded:
+            layers_used.append("segments")
+        if glacier_mask is not None:
+            layers_used.append("glacier")
+
+        saved_route_id = None
+        if req.save:
+            try:
+                props = bridge_feature["properties"]
+                route_data = {
+                    "name": req.name,
+                    "start_lat": req.start_lat, "start_lon": req.start_lon,
+                    "end_lat": req.end_lat, "end_lon": req.end_lon,
+                    "resolution": req.resolution, "month": req.month,
+                    "acclimatized": req.acclimatized,
+                    "distance_m": props["distance_km"] * 1000,
+                    "dplus_m": props["dplus_m"], "dminus_m": props["dminus_m"],
+                    "time_tobler_h": props["time_tobler_h"],
+                    "glacier_pct": props["glacier_pct"],
+                    "cost_total": props.get("cost_total"),
+                    "computation_time_s": 0,
+                    "geojson": json.dumps(bridge_feature),
+                }
+                saved_route_id = save_route(DB_PATH, route_data)
+            except Exception as e:
+                logger.warning("auto-save bridge failed: %s", e)
+
+        _progress(progress_callback, "result", 1.0)
+        result = {
+            "status": "ok",
+            "route": bridge_feature,
+            "computation_time_s": 0,
+            "strategy": "hybrid_bridge",
+            "valhalla_available": True,
+            "layers_used": layers_used,
+        }
+        if saved_route_id is not None:
+            result["saved_route_id"] = saved_route_id
+        return result
 
     start_row, start_col, _, _ = wgs84_to_pixel(
         req.start_lat, req.start_lon, transform, cost_for_display.shape)
@@ -482,6 +575,8 @@ def run_pipeline(req, progress_callback=None):
         layers_used.append("osm_trails")
     if barrier_masks is not None:
         layers_used.append("osm_barriers")
+    if segments_loaded:
+        layers_used.append("segments")
     if glacier_mask is not None:
         layers_used.append("glacier")
 

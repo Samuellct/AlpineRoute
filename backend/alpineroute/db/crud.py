@@ -272,6 +272,71 @@ def get_cached_tiles(db_path, source, resolution):
         conn.close()
 
 
+# ---- Terrain segments ----
+
+def list_terrain_segments(db_path, segment_type=None):
+    """Liste les segments terrain sans geojson."""
+    conn = get_connection(db_path)
+    try:
+        conn.row_factory = _dict_factory
+        conditions = []
+        params = []
+        if segment_type:
+            conditions.append("segment_type = ?")
+            params.append(segment_type)
+
+        where = ""
+        if conditions:
+            where = "WHERE " + " AND ".join(conditions)
+
+        rows = conn.execute(f"""
+            SELECT id, gpx_path, start_name, end_name, segment_type,
+                   trail_cost, distance_m, dplus_m,
+                   start_lat, start_lon, end_lat, end_lon,
+                   notes, created_at
+            FROM terrain_segments {where}
+            ORDER BY segment_type, start_name
+        """, params).fetchall()
+        return rows
+    finally:
+        conn.close()
+
+
+def get_terrain_segments_geojson(db_path, segment_type=None):
+    """FeatureCollection des segments terrain."""
+    conn = get_connection(db_path)
+    try:
+        conn.row_factory = _dict_factory
+        conditions = []
+        params = []
+        if segment_type:
+            conditions.append("segment_type = ?")
+            params.append(segment_type)
+
+        where = ""
+        if conditions:
+            where = "WHERE " + " AND ".join(conditions)
+
+        rows = conn.execute(
+            f"SELECT geojson FROM terrain_segments {where}", params
+        ).fetchall()
+
+        features = []
+        for row in rows:
+            gj = row.get("geojson")
+            if gj and isinstance(gj, str):
+                try:
+                    features.append(json.loads(gj))
+                except json.JSONDecodeError:
+                    pass
+            elif isinstance(gj, dict):
+                features.append(gj)
+
+        return {"type": "FeatureCollection", "features": features}
+    finally:
+        conn.close()
+
+
 # ---- Alpine routes ----
 
 def list_alpine_routes(db_path, massif=None, summit=None):

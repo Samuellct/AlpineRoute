@@ -107,6 +107,22 @@ class TestZonesCRUD:
         assert r.status_code == 404
 
 
+class TestTerrainSegments:
+    def test_list_empty(self, client):
+        r = client.get("/terrain-segments")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["count"] == 0
+        assert data["segments"] == []
+
+    def test_geojson_empty(self, client):
+        r = client.get("/terrain-segments/geojson")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["type"] == "FeatureCollection"
+        assert data["features"] == []
+
+
 class TestAlpineRoutes:
     def test_list_empty(self, client):
         r = client.get("/alpine-routes")
