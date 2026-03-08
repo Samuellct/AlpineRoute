@@ -28,7 +28,12 @@ from alpineroute.routing.pathfinding import (
     prepare_cost_grid, run_pathfinding, run_pathfinding_alternatives,
     dijkstra_anisotropic, run_aniso_alternatives,
 )
+from alpineroute.routing.network import (
+    valhalla_available, valhalla_route, is_detour_excessive,
+)
+from alpineroute.routing.hybrid import valhalla_to_geojson_feature
 from alpineroute.db.crud import list_zones, save_route
+from alpineroute.utils import ValhallaError
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +43,9 @@ _last_cost_surface: dict = {}
 
 # poids SSE par etape (total = 100%)
 _STEP_WEIGHTS = {
+    "network": 5,
     "bbox": 0,
-    "dem": 38,
+    "dem": 33,
     "terrain": 14,
     "worldcover": 5,
     "glacier": 5,
@@ -131,10 +137,89 @@ def run_pipeline(req, progress_callback=None):
     req: RouteRequest (pydantic model)
     progress_callback(pct: int, step: str): pour SSE
     """
-    # -- 1. bbox
-    _progress(progress_callback, "bbox")
     start = (req.start_lat, req.start_lon)
     end = (req.end_lat, req.end_lon)
+
+    # -- 0. tentative reseau (Valhalla)
+    _progress(progress_callback, "network", 0)
+    strategy = "raster"
+    valhalla_result = None
+    valhalla_up = False
+
+    try:
+        valhalla_up = valhalla_available()
+    except Exception:
+        pass
+
+    if valhalla_up:
+        try:
+            vr = valhalla_route(start, end)
+            if vr is not None:
+                if is_detour_excessive(vr["distance_km"], start, end):
+                    # cas C: detour -> full raster (ponts raster = Phase 7)
+                    strategy = "raster"
+                else:
+                    # cas A: route Valhalla OK
+                    strategy = "network"
+                    valhalla_result = vr
+            else:
+                # cas B: NoRoute -> fallback raster (hybrid complet = Phase 7)
+                strategy = "raster"
+        except ValhallaError:
+            strategy = "raster"
+
+    _progress(progress_callback, "network", 1.0)
+    logger.info("strategy: %s (valhalla_up=%s)", strategy, valhalla_up)
+
+    # -- cas network: pas besoin du pipeline raster
+    if strategy == "network":
+        _progress(progress_callback, "result", 0)
+        feature = valhalla_to_geojson_feature(valhalla_result)
+
+        # auto-save si demande
+        saved_route_id = None
+        if req.save:
+            try:
+                props = feature["properties"]
+                route_data = {
+                    "name": req.name,
+                    "start_lat": req.start_lat,
+                    "start_lon": req.start_lon,
+                    "end_lat": req.end_lat,
+                    "end_lon": req.end_lon,
+                    "resolution": req.resolution,
+                    "month": req.month,
+                    "acclimatized": req.acclimatized,
+                    "distance_m": props["distance_km"] * 1000,
+                    "dplus_m": props["dplus_m"],
+                    "dminus_m": props["dminus_m"],
+                    "time_tobler_h": props["time_tobler_h"],
+                    "glacier_pct": props["glacier_pct"],
+                    "cost_total": props.get("cost_total"),
+                    "computation_time_s": 0,
+                    "geojson": json.dumps(feature),
+                }
+                saved_route_id = save_route(DB_PATH, route_data)
+            except Exception as e:
+                logger.warning("auto-save failed: %s", e)
+
+        _progress(progress_callback, "result", 1.0)
+        result = {
+            "status": "ok",
+            "route": feature,
+            "computation_time_s": 0,
+            "strategy": "network",
+            "valhalla_available": True,
+            "layers_used": ["valhalla"],
+        }
+        if saved_route_id is not None:
+            result["saved_route_id"] = saved_route_id
+        return result
+
+    # -- pipeline raster (strategy = "raster")
+
+    # -- 1. bbox
+    _progress(progress_callback, "bbox")
     bboxes = compute_bbox(start, end)
     bbox_l93 = bboxes["bbox_l93"]
     bbox_wgs84 = bboxes["bbox_wgs84"]
@@ -211,16 +296,11 @@ def run_pipeline(req, progress_callback=None):
     glacier_mask = get_glacier_mask(bbox_l93, transform, dem.shape)
     _progress(progress_callback, "glacier", 1.0)
 
-    # -- 5b. OSM trails + barriers (si routing_mode >= 2)
+    # -- 5b. OSM trails + barriers (toujours charge)
     _progress(progress_callback, "osm", 0)
-    trail_cost = None
-    barrier_masks = None
-    routing_mode = getattr(req, 'routing_mode', 2)
-
-    if routing_mode >= 2:
-        trail_cost = get_trail_cost(bbox_l93, transform, dem.shape, resolution=req.resolution)
-        _progress(progress_callback, "osm", 0.5)
-        barrier_masks = get_barrier_masks(bbox_l93, transform, dem.shape)
+    trail_cost = get_trail_cost(bbox_l93, transform, dem.shape, resolution=req.resolution)
+    _progress(progress_callback, "osm", 0.5)
+    barrier_masks = get_barrier_masks(bbox_l93, transform, dem.shape)
     _progress(progress_callback, "osm", 1.0)
 
     # -- 6. cost surface
@@ -397,10 +477,21 @@ def run_pipeline(req, progress_callback=None):
                 "car il distingue montee et descente."
             )
 
+    layers_used = ["dem", "terrain"]
+    if trail_cost is not None:
+        layers_used.append("osm_trails")
+    if barrier_masks is not None:
+        layers_used.append("osm_barriers")
+    if glacier_mask is not None:
+        layers_used.append("glacier")
+
     result = {
         "status": "ok",
         "route": routes[0] if routes else None,
         "computation_time_s": round(total_dt, 1),
+        "strategy": "raster",
+        "valhalla_available": valhalla_up,
+        "layers_used": layers_used,
     }
 
     if warnings:

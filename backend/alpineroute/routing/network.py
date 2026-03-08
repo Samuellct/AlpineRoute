@@ -1,12 +1,15 @@
 # client Valhalla -- routage reseau OSM pieton
 # utilise pour le mode hybride (sentiers OSM + hors-piste raster)
 
+import math
 import httpx
 
 from alpineroute.config import (
     VALHALLA_BASE_URL,
     VALHALLA_TIMEOUT_S,
     VALHALLA_MAX_HIKING_DIFFICULTY,
+    VALHALLA_DETOUR_THRESHOLD,
+    VALHALLA_MIN_DIRECT_M,
 )
 from alpineroute.utils import ValhallaError, setup_logging
 
@@ -143,3 +146,32 @@ def valhalla_route(start_wgs84, end_wgs84, max_difficulty=None):
         }
     except (KeyError, IndexError) as e:
         raise ValhallaError(f"Reponse Valhalla inattendue: {e}")
+
+
+def haversine_km(lat1, lon1, lat2, lon2):
+    """Distance en km entre deux points WGS84 (formule haversine)."""
+    R = 6371.0
+    rlat1, rlat2 = math.radians(lat1), math.radians(lat2)
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat / 2) ** 2 + math.cos(rlat1) * math.cos(rlat2) * math.sin(dlon / 2) ** 2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+def is_detour_excessive(valhalla_distance_km, start_wgs84, end_wgs84):
+    """Verifie si la route Valhalla fait un detour absurde par rapport au vol d'oiseau.
+    Retourne True si ratio > seuil (sauf si distance < VALHALLA_MIN_DIRECT_M)."""
+    lat1, lon1 = start_wgs84
+    lat2, lon2 = end_wgs84
+    direct_km = haversine_km(lat1, lon1, lat2, lon2)
+
+    # court trajet -> on laisse passer
+    if direct_km < VALHALLA_MIN_DIRECT_M / 1000:
+        return False
+
+    ratio = valhalla_distance_km / direct_km
+    if ratio > VALHALLA_DETOUR_THRESHOLD:
+        log.info("detour excessif: %.1f km Valhalla / %.1f km direct = ratio %.1f",
+                 valhalla_distance_km, direct_km, ratio)
+        return True
+    return False

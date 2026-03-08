@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.0.0-alpha.3]
+
+### Added
+- modif complète du pipeline, passe à un mode unique adaptatif : tentative Valhalla automatique avant raster
+- Détection de détours excessif avec ratio vol d'oiseau
+- Champs `strategy`, `valhalla_available`, `layers_used` dans la reponse API
+
+### Changed
+- Redistribution poids SSE (étape "network" ajoutée)
+
+### Removed
+- routing_mode dans RouteRequest
+
 ## [2.0.0-alpha.2]
 
 Rework complet du moteur de calcul. Passage de 100% raster à graphes (Valhalla) + raster.

@@ -134,6 +134,8 @@ VALHALLA_BASE_URL = os.environ.get("ALPINEROUTE_VALHALLA_URL", "http://localhost
 VALHALLA_TIMEOUT_S = 30
 VALHALLA_MAX_HIKING_DIFFICULTY = 6   # echelle 0-6 Valhalla pr les chemins T1-T6 osm
 VALHALLA_PBF_URL = "http://download.geofabrik.de/europe/france/rhone-alpes-latest.osm.pbf"
+VALHALLA_DETOUR_THRESHOLD = 3.0   # ratio dist_valhalla / vol_oiseau
+VALHALLA_MIN_DIRECT_M = 500       # en dessous, pas de test detour
 
 # ---- hillshade ----
 HILLSHADE_AZIMUTH = 315
