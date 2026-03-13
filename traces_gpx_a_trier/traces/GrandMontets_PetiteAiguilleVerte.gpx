@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.0" creator="Calcul itineraires - www.calculitineraires.fr" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.topografix.com/GPX/1/0" xsi:schemaLocation="http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd">
+<trk>
+<name>GrandMontets_PetiteAiguilleVerte</name>
+<trkseg>
+<trkpt lat="45.947986380351054" lon="6.96030333025191">
+</trkpt>
+<trkpt lat="45.94797186855354" lon="6.960284113883973">
+</trkpt>
+<trkpt lat="45.94780775093224" lon="6.959956884384156">
+</trkpt>
+<trkpt lat="45.94724721956074" lon="6.959672470286923">
+</trkpt>
+<trkpt lat="45.94720681752641" lon="6.959643019384766">
+</trkpt>
+<trkpt lat="45.946009425123485" lon="6.9596896302757525">
+</trkpt>
+<trkpt lat="45.94577104266384" lon="6.960258114348648">
+</trkpt>
+<trkpt lat="45.94478613584534" lon="6.959869873510091">
+</trkpt>
+<trkpt lat="45.94464425386382" lon="6.960549782055235">
+</trkpt>
+<trkpt lat="45.94430480787088" lon="6.961638972174412">
+</trkpt>
+<trkpt lat="45.94422274369248" lon="6.962470375727455">
+</trkpt>
+<trkpt lat="45.943730356070965" lon="6.963752613809327">
+</trkpt>
+</trkseg>
+</trk>
+</gpx>
