@@ -7,6 +7,7 @@ from alpineroute.routing.network import (
     valhalla_available,
     valhalla_route,
     valhalla_locate,
+    parse_locate_snap,
 )
 from alpineroute.utils import ValhallaError
 
@@ -81,6 +82,11 @@ class TestValhallaRoute:
         assert result["duration_s"] == 3600
         assert len(result["coords"]) == 2
         assert "shape_encoded" in result
+        # snap fields
+        assert "snap_start" in result
+        assert "snap_end" in result
+        assert isinstance(result["snap_start_m"], float)
+        assert isinstance(result["snap_end_m"], float)
 
     @patch("alpineroute.routing.network.httpx.post")
     def test_no_route_returns_none(self, mock_post):
@@ -133,6 +139,28 @@ class TestValhallaLocate:
         mock_post.side_effect = ConnectionError("refused")
         result = valhalla_locate((45.92, 6.87))
         assert result is None
+
+
+# ---- parse_locate_snap ----
+
+class TestParseLocateSnap:
+    def test_valid_response(self):
+        loc = [{"edges": [{"correlated_lat": 45.923, "correlated_lon": 6.870}]}]
+        result = parse_locate_snap(loc)
+        assert result == (45.923, 6.870)
+
+    def test_empty_returns_none(self):
+        assert parse_locate_snap(None) is None
+        assert parse_locate_snap([]) is None
+        assert parse_locate_snap([{}]) is None
+
+    def test_no_edges_returns_none(self):
+        assert parse_locate_snap([{"edges": []}]) is None
+        assert parse_locate_snap([{"edges": None}]) is None
+
+    def test_missing_fields_returns_none(self):
+        loc = [{"edges": [{"correlated_lat": 45.923}]}]
+        assert parse_locate_snap(loc) is None
 
 
 # ---- integration (skip si Valhalla absent) ----

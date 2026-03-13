@@ -17,6 +17,7 @@ from alpineroute.config import (
     OSM_CACHE_DIR, OSM_CACHE_TTL_DAYS,
     TRAIL_COST_MULTIPLIERS, TRAIL_BUFFER_M,
     TRAIL_PROXIMITY_BUFFER_M, TRAIL_PROXIMITY_PENALTY,
+    MAX_RETRIES, RETRY_DELAY,
 )
 from alpineroute.utils import l93_to_wgs84
 
@@ -79,13 +80,26 @@ def download_trails(bbox_l93):
     lon_min, lat_min = l93_to_wgs84(bbox_l93["xmin"], bbox_l93["ymin"])
     lon_max, lat_max = l93_to_wgs84(bbox_l93["xmax"], bbox_l93["ymax"])
 
+    # filtre: seulement les types pertinents pour le routage montagne
+    # exclut motorway/trunk/primary qui sont lourds et inutiles en alpin
     query = f"""[out:json][timeout:{OVERPASS_TIMEOUT}];
-way["highway"]({lat_min},{lon_min},{lat_max},{lon_max});
+way["highway"~"^(path|footway|track|steps|bridleway|service|residential|tertiary|secondary|unclassified|living_street)$"]({lat_min},{lon_min},{lat_max},{lon_max});
 out geom;"""
 
     logger.info("overpass trails query %.4f,%.4f -> %.4f,%.4f", lat_min, lon_min, lat_max, lon_max)
-    resp = httpx.post(OVERPASS_URL, data={"data": query}, timeout=OVERPASS_TIMEOUT + 10)
-    resp.raise_for_status()
+    last_err = None
+    for attempt in range(MAX_RETRIES):
+        try:
+            resp = httpx.post(OVERPASS_URL, data={"data": query}, timeout=OVERPASS_TIMEOUT + 10)
+            resp.raise_for_status()
+            break
+        except Exception as e:
+            last_err = e
+            if attempt < MAX_RETRIES - 1:
+                logger.warning("overpass trails tentative %d/%d echec: %s", attempt + 1, MAX_RETRIES, e)
+                time.sleep(RETRY_DELAY * (attempt + 1))
+    else:
+        raise last_err
 
     tag_keys = ["highway", "surface", "tracktype", "sac_scale", "foot", "access"]
     gdf = _parse_overpass_ways(resp.json(), tag_keys)

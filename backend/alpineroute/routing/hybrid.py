@@ -54,35 +54,49 @@ def valhalla_to_geojson_feature(valhalla_result, route_index=0):
     return feature
 
 
-def assemble_route(valhalla_coords, raster_feature, transition_point_wgs84):
+def assemble_route(valhalla_coords, raster_feature, transition_point_wgs84,
+                   valhalla_stats=None, order="valhalla_first"):
     """Raccorde un troncon Valhalla et un troncon raster.
     valhalla_coords: [(lat, lon), ...]
     raster_feature: GeoJSON Feature du pathfinding raster
     transition_point_wgs84: (lat, lon) point de jonction
+    valhalla_stats: dict avec distance_km/duration_s du troncon Valhalla (optionnel)
+    order: "valhalla_first" ou "raster_first"
     Retourne un GeoJSON Feature unifie."""
     # coords valhalla -> [lon, lat, 0]
     v_coords = [[round(lon, 6), round(lat, 6), 0] for lat, lon in valhalla_coords]
     r_coords = raster_feature["geometry"]["coordinates"]
 
-    # check distance de raccord
-    if v_coords and r_coords:
-        last_v = v_coords[-1]
-        first_r = r_coords[0]
-        gap_km = haversine_km(last_v[1], last_v[0], first_r[1], first_r[0])
-        gap_m = gap_km * 1000
-        if gap_m > 50:
-            log.warning("raccord Valhalla-raster: %.0fm (> 50m)", gap_m)
-
-    merged_coords = v_coords + r_coords
+    if order == "raster_first":
+        # check gap raster -> valhalla
+        if r_coords and v_coords:
+            last_r = r_coords[-1]
+            first_v = v_coords[0]
+            gap_km = haversine_km(last_r[1], last_r[0], first_v[1], first_v[0])
+            gap_m = gap_km * 1000
+            if gap_m > 50:
+                log.warning("raccord raster-Valhalla: %.0fm (> 50m)", gap_m)
+        merged_coords = r_coords + v_coords
+    else:
+        # check distance de raccord valhalla -> raster
+        if v_coords and r_coords:
+            last_v = v_coords[-1]
+            first_r = r_coords[0]
+            gap_km = haversine_km(last_v[1], last_v[0], first_r[1], first_r[0])
+            gap_m = gap_km * 1000
+            if gap_m > 50:
+                log.warning("raccord Valhalla-raster: %.0fm (> 50m)", gap_m)
+        merged_coords = v_coords + r_coords
 
     # merge properties
-    v_props = {
-        "distance_km": 0,
-        "time_tobler_h": 0,
-        "dplus_m": 0,
-        "dminus_m": 0,
-        "glacier_pct": 0,
-    }
+    if valhalla_stats:
+        v_props = {
+            "distance_km": valhalla_stats.get("distance_km", 0),
+            "time_tobler_h": round(valhalla_stats.get("duration_s", 0) / 3600, 1),
+            "dplus_m": 0, "dminus_m": 0, "glacier_pct": 0,
+        }
+    else:
+        v_props = {"distance_km": 0, "time_tobler_h": 0, "dplus_m": 0, "dminus_m": 0, "glacier_pct": 0}
     r_props = raster_feature.get("properties", {})
 
     feature = {
@@ -133,6 +147,98 @@ def reduce_bbox(exit_wgs84, dest_wgs84, margin_m=500):
     }
 
     return {"bbox_l93": bbox_l93, "bbox_wgs84": bbox_wgs84}
+
+
+# --- CAS B : routage hybride (approche reseau + hors-piste terminal) ---
+
+def find_network_exit(start, end, max_snap_m=None):
+    """CAS B principal : destination off-network.
+    Cherche le point de sortie reseau le plus proche de la dest,
+    puis calcule l'approche Valhalla de start a ce point.
+    Rejette l'approche si elle ne rapproche pas de la dest.
+    Retourne dict {exit_point, approach, snap_m} ou None."""
+    from alpineroute.routing.network import (
+        valhalla_locate, valhalla_route, parse_locate_snap, haversine_km as _hav,
+    )
+    from alpineroute.config import SNAP_MAX_DISTANCE_M
+
+    if max_snap_m is None:
+        max_snap_m = SNAP_MAX_DISTANCE_M
+
+    loc = valhalla_locate(end)
+    snap_pt = parse_locate_snap(loc)
+    if snap_pt is None:
+        return None
+
+    # verif distance snap /locate -> dest
+    snap_m = _hav(end[0], end[1], snap_pt[0], snap_pt[1]) * 1000
+    if snap_m > max_snap_m:
+        log.info("find_network_exit: snap trop loin (%.0fm > %.0fm)", snap_m, max_snap_m)
+        return None
+
+    try:
+        vr = valhalla_route(start, snap_pt)
+    except Exception as e:
+        log.warning("find_network_exit: valhalla_route echec: %s", e)
+        return None
+    if vr is None:
+        return None
+
+    actual_exit = vr["coords"][-1] if vr["coords"] else snap_pt
+    actual_snap_m = _hav(end[0], end[1], actual_exit[0], actual_exit[1]) * 1000
+
+    # verif: l'approche doit rapprocher de la destination
+    # sinon c'est un detour inutile (ex: start deja pres du reseau glaciaire,
+    # l'approche monte au Montenvers puis redescend)
+    direct_km = _hav(start[0], start[1], end[0], end[1])
+    exit_to_end_km = _hav(actual_exit[0], actual_exit[1], end[0], end[1])
+    if exit_to_end_km >= direct_km * 0.85:
+        log.info("find_network_exit: approche inutile (exit %.1fkm vs direct %.1fkm), skip",
+                 exit_to_end_km, direct_km)
+        return None
+
+    log.info("find_network_exit: locate_snap=%.0fm, actual_exit=%.0fm",
+             snap_m, actual_snap_m)
+
+    return {"exit_point": actual_exit, "approach": vr, "snap_m": actual_snap_m}
+
+
+def find_network_entry(start, end, max_snap_m=None):
+    """CAS B symetrique : depart off-network.
+    Cherche le point d'entree reseau le plus proche du depart,
+    puis calcule la continuation Valhalla de ce point vers end.
+    Retourne dict {entry_point, continuation, snap_m} ou None."""
+    from alpineroute.routing.network import (
+        valhalla_locate, valhalla_route, parse_locate_snap, haversine_km as _hav,
+    )
+    from alpineroute.config import SNAP_MAX_DISTANCE_M
+
+    if max_snap_m is None:
+        max_snap_m = SNAP_MAX_DISTANCE_M
+
+    loc = valhalla_locate(start)
+    snap_pt = parse_locate_snap(loc)
+    if snap_pt is None:
+        return None
+
+    snap_m = _hav(start[0], start[1], snap_pt[0], snap_pt[1]) * 1000
+    if snap_m > max_snap_m:
+        log.info("find_network_entry: snap trop loin (%.0fm > %.0fm)", snap_m, max_snap_m)
+        return None
+
+    try:
+        vr = valhalla_route(snap_pt, end)
+    except Exception as e:
+        log.warning("find_network_entry: valhalla_route echec: %s", e)
+        return None
+    if vr is None:
+        return None
+
+    # premier point reel de la route (Valhalla re-snappe en interne)
+    actual_entry = vr["coords"][0] if vr["coords"] else snap_pt
+    actual_snap_m = _hav(start[0], start[1], actual_entry[0], actual_entry[1]) * 1000
+
+    return {"entry_point": actual_entry, "continuation": vr, "snap_m": actual_snap_m}
 
 
 # --- ponts raster (Phase 7) ---

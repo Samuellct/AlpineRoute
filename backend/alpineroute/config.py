@@ -97,7 +97,7 @@ WORLDCOVER_URL_PATTERN = "https://esa-worldcover.s3.eu-central-1.amazonaws.com/v
 
 # ---- OSM / sentiers & barrieres ----
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
-OVERPASS_TIMEOUT = 60
+OVERPASS_TIMEOUT = 180
 OSM_CACHE_DIR = os.path.join(DATA_DIR, "cache", "osm")
 OSM_CACHE_TTL_DAYS = 30
 
@@ -109,15 +109,15 @@ TRAIL_COST_MULTIPLIERS = {
     "trail_default": 0.30,
     "trail_t3": 0.40,
     "track_soft": 0.45,
-    "trail_t4": 0.55,
-    "trail_t5": 0.70,
-    "trail_t6": 0.85,
+    "trail_t4": 0.30,      # avant 0.55 trop faible vs terrain alpin
+    "trail_t5": 0.35,      # avant 0.70
+    "trail_t6": 0.45,      # avant 0.85
 }
 
 TRAIL_BUFFER_M = {
     "road": 3.0,
     "trail": 1.5,
-    "alpine": 0.5,
+    "alpine": 3.0,          # avant 0.5 mais invisible a 1m de resolution
 }
 
 # penalite proximite sentier: px proches d'un sentier mais hors sentier
@@ -143,6 +143,11 @@ VALHALLA_MIN_DIRECT_M = 500       # en dessous, pas de test detour
 BRIDGE_MAX_DISTANCE_M = 300       # dist max directe pour tenter un pont
 BRIDGE_DETOUR_RATIO = 2.5         # ratio leg/direct pour detecter un detour
 BRIDGE_BBOX_MARGIN_M = 200        # marge autour du pont pour le pathfinding local
+
+# verification snap Valhalla -- dist max entre point demande et snap reseau
+SNAP_MAX_DISTANCE_M = 500
+GHOST_ROUTE_MIN_DISTANCE_KM = 1.0   # en dessous, route fantome detectee
+HYBRID_BBOX_MARGIN_M = 4000         # marge bbox pour CAS B (assez large pour alternatives)
 
 # ---- hillshade ----
 HILLSHADE_AZIMUTH = 315

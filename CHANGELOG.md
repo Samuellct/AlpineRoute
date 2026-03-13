@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.0.0-alpha.6]
+
+### Fixed
+- Vérification distance snap Valhalla (rejet routes fantome + arrêts prématurés)
+- mode hybride : approche Valhalla + raster terminal (sensé suivre les sentiers OSM avec trail cost)
+- assemble_route() intègre les stats Valhalla (distance, temps)
+- exit_point utilise coords[-1] de la route Valhalla
+- KeyError 'approach' quand find_network_entry entrait dans le bloc continuation
+- Lignes droites à travers les montagnes (assemble_bridged_route supprimé)
+- Overpass timeout 504 sur grandes bboxes (timeout 60 > 180s)
+- Buffer trails alpins invisibles a 1m de résolution (0.5->3.0m)
+- Multiplicateurs T4/T5/T6 trop faibles (T4:0.55->0.30, T5:0.70->0.35, T6:0.85->0.45)
+
+### Added
+- find_network_exit/entry pour le routage hybride
+- parse_locate_snap pour exploiter /locate Valhalla
+- Config: SNAP_MAX_DISTANCE_M, GHOST_ROUTE_MIN_DISTANCE_KM, HYBRID_BBOX_MARGIN_M
+- Retry Overpass avec delai progressif (3 tentatives)
+- Warning explicite quand trail_cost=None (aucun sentier OSM charge)
+
 ## [2.0.0-alpha.5]
 
 ### Added

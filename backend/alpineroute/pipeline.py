@@ -10,6 +10,7 @@ from alpineroute.config import (
     MAX_GRID_PIXELS, MAX_GRID_PIXELS_ANISO,
     MAX_ROUTE_POINTS_API, NODATA_VALUE, DB_PATH,
     ISOTROPIC_WARNING_DPLUS_M, STREAM_CROSSING_PENALTY,
+    SNAP_MAX_DISTANCE_M, GHOST_ROUTE_MIN_DISTANCE_KM, HYBRID_BBOX_MARGIN_M,
 )
 from alpineroute.utils import (
     compute_bbox, load_dem, wgs84_to_pixel, pixel_to_l93,
@@ -29,11 +30,13 @@ from alpineroute.routing.pathfinding import (
     dijkstra_anisotropic, run_aniso_alternatives,
 )
 from alpineroute.routing.network import (
-    valhalla_available, valhalla_route, is_detour_excessive,
+    valhalla_available, valhalla_route, is_detour_excessive, haversine_km,
 )
 from alpineroute.routing.hybrid import (
     valhalla_to_geojson_feature, detect_detour_segments,
     compute_raster_bridge, apply_bridges,
+    assemble_route, reduce_bbox,
+    find_network_exit, find_network_entry,
 )
 from alpineroute.alpine.segments import (
     load_segments_for_bbox, rasterize_segments, merge_trail_layers,
@@ -150,6 +153,7 @@ def run_pipeline(req, progress_callback=None):
     _progress(progress_callback, "network", 0)
     strategy = "raster"
     valhalla_result = None
+    hybrid_info = None
     valhalla_up = False
 
     try:
@@ -160,6 +164,25 @@ def run_pipeline(req, progress_callback=None):
     if valhalla_up:
         try:
             vr = valhalla_route(start, end)
+
+            # validation snap + ghost route
+            if vr is not None:
+                direct_km = haversine_km(start[0], start[1], end[0], end[1])
+                # ghost check: route quasi-nulle pour des points distants
+                if vr["distance_km"] < 0.01 and direct_km > GHOST_ROUTE_MIN_DISTANCE_KM:
+                    logger.warning("ghost route rejetee: %.3f km pour %.1f km vol d'oiseau",
+                                   vr["distance_km"], direct_km)
+                    vr = None
+                # snap trop loin -> pas de route fiable
+                elif vr["snap_end_m"] > SNAP_MAX_DISTANCE_M:
+                    logger.warning("snap end trop loin: %.0fm > %.0fm",
+                                   vr["snap_end_m"], SNAP_MAX_DISTANCE_M)
+                    vr = None
+                elif vr["snap_start_m"] > SNAP_MAX_DISTANCE_M:
+                    logger.warning("snap start trop loin: %.0fm > %.0fm",
+                                   vr["snap_start_m"], SNAP_MAX_DISTANCE_M)
+                    vr = None
+
             if vr is not None:
                 if is_detour_excessive(vr["distance_km"], start, end):
                     # cas C: detour -> raster, mais on garde vr pour tenter des ponts
@@ -170,8 +193,14 @@ def run_pipeline(req, progress_callback=None):
                     strategy = "network"
                     valhalla_result = vr
             else:
-                # cas B: NoRoute -> fallback raster (hybrid complet = Phase 7)
-                strategy = "raster"
+                # CAS B: NoRoute / ghost / snap loin -> tenter hybride
+                hybrid_info = find_network_exit(start, end)
+                if hybrid_info is None:
+                    hybrid_info = find_network_entry(start, end)
+                if hybrid_info is not None:
+                    strategy = "hybrid"
+                else:
+                    strategy = "raster"
         except ValhallaError:
             strategy = "raster"
 
@@ -223,11 +252,25 @@ def run_pipeline(req, progress_callback=None):
             result["saved_route_id"] = saved_route_id
         return result
 
-    # -- pipeline raster (strategy = "raster")
+    # -- pipeline raster (strategy = "raster" ou "hybrid" avec raster terminal)
 
     # -- 1. bbox
     _progress(progress_callback, "bbox")
-    bboxes = compute_bbox(start, end)
+
+    raster_start = start
+    raster_end = end
+
+    if strategy == "hybrid" and hybrid_info is not None:
+        if "exit_point" in hybrid_info:
+            raster_start = hybrid_info["exit_point"]
+            raster_end = end
+        else:
+            raster_start = start
+            raster_end = hybrid_info["entry_point"]
+        bboxes = reduce_bbox(raster_start, raster_end, margin_m=HYBRID_BBOX_MARGIN_M)
+    else:
+        bboxes = compute_bbox(start, end)
+
     bbox_l93 = bboxes["bbox_l93"]
     bbox_wgs84 = bboxes["bbox_wgs84"]
 
@@ -306,6 +349,8 @@ def run_pipeline(req, progress_callback=None):
     # -- 5b. OSM trails + barriers (toujours charge)
     _progress(progress_callback, "osm", 0)
     trail_cost = get_trail_cost(bbox_l93, transform, dem.shape, resolution=req.resolution)
+    if trail_cost is None:
+        logger.warning("ATTENTION: trail_cost=None, aucun sentier OSM ne sera utilise pour le pathfinding")
     _progress(progress_callback, "osm", 0.5)
     barrier_masks = get_barrier_masks(bbox_l93, transform, dem.shape)
     _progress(progress_callback, "osm", 0.8)
@@ -475,9 +520,9 @@ def run_pipeline(req, progress_callback=None):
         return result
 
     start_row, start_col, _, _ = wgs84_to_pixel(
-        req.start_lat, req.start_lon, transform, cost_for_display.shape)
+        raster_start[0], raster_start[1], transform, cost_for_display.shape)
     end_row, end_col, _, _ = wgs84_to_pixel(
-        req.end_lat, req.end_lon, transform, cost_for_display.shape)
+        raster_end[0], raster_end[1], transform, cost_for_display.shape)
 
     start_rc = (start_row, start_col)
     end_rc = (end_row, end_col)
@@ -525,6 +570,25 @@ def run_pipeline(req, progress_callback=None):
             req.resolution, route_index=i, path_cost=path_cost)
         routes.append(feature)
         total_dt += dt
+
+    # assemblage hybrid si CAS B
+    if strategy == "hybrid" and hybrid_info is not None and routes:
+        raster_feature = routes[0]
+        if "exit_point" in hybrid_info:
+            assembled = assemble_route(
+                hybrid_info["approach"]["coords"],
+                raster_feature,
+                hybrid_info["exit_point"],
+                valhalla_stats=hybrid_info["approach"],
+                order="valhalla_first")
+        else:
+            assembled = assemble_route(
+                hybrid_info["continuation"]["coords"],
+                raster_feature,
+                hybrid_info["entry_point"],
+                valhalla_stats=hybrid_info["continuation"],
+                order="raster_first")
+        routes[0] = assembled
 
     _progress(progress_callback, "result", 0.5)
 
@@ -579,12 +643,14 @@ def run_pipeline(req, progress_callback=None):
         layers_used.append("segments")
     if glacier_mask is not None:
         layers_used.append("glacier")
+    if strategy == "hybrid":
+        layers_used.append("valhalla")
 
     result = {
         "status": "ok",
         "route": routes[0] if routes else None,
         "computation_time_s": round(total_dt, 1),
-        "strategy": "raster",
+        "strategy": strategy,
         "valhalla_available": valhalla_up,
         "layers_used": layers_used,
     }

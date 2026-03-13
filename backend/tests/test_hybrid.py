@@ -2,11 +2,13 @@
 
 import pytest
 import numpy as np
+from unittest.mock import patch, MagicMock
 from rasterio.transform import from_origin
 from alpineroute.routing.network import haversine_km, is_detour_excessive
 from alpineroute.routing.hybrid import (
-    valhalla_to_geojson_feature, assemble_route, reduce_bbox,
-    detect_detour_segments, compute_raster_bridge, apply_bridges,
+    valhalla_to_geojson_feature, assemble_route,
+    reduce_bbox, detect_detour_segments, compute_raster_bridge, apply_bridges,
+    find_network_exit, find_network_entry,
 )
 
 
@@ -103,6 +105,40 @@ class TestAssembleRoute:
         assert len(coords) == 4
         assert feat["properties"]["strategy"] == "hybrid"
         assert feat["properties"]["n_points"] == 4
+
+    def test_with_valhalla_stats(self):
+        """Stats Valhalla transmises dans les props assemblees."""
+        v_coords = [(45.90, 6.87), (45.91, 6.88)]
+        r_feature = {
+            "type": "Feature",
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [[6.88, 45.91, 3000], [6.89, 45.92, 3100]],
+            },
+            "properties": {"distance_km": 1.0, "time_tobler_h": 0.5},
+        }
+        v_stats = {"distance_km": 2.5, "duration_s": 1800}
+        feat = assemble_route(v_coords, r_feature, (45.91, 6.88), valhalla_stats=v_stats)
+        props = feat["properties"]
+        assert props["distance_km"] == 3.5  # 2.5 + 1.0
+        assert props["time_tobler_h"] == 1.0  # 0.5h valhalla + 0.5h raster
+
+    def test_raster_first_order(self):
+        """order=raster_first -> coords raster avant Valhalla."""
+        v_coords = [(45.92, 6.89)]
+        r_feature = {
+            "type": "Feature",
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [[6.87, 45.90, 2800]],
+            },
+            "properties": {"distance_km": 1.0},
+        }
+        feat = assemble_route(v_coords, r_feature, (45.91, 6.88), order="raster_first")
+        coords = feat["geometry"]["coordinates"]
+        # raster d'abord, puis valhalla
+        assert coords[0] == [6.87, 45.90, 2800]
+        assert coords[1] == [6.89, 45.92, 0]
 
     def test_gap_warning(self, caplog):
         """Gap > 50m entre Valhalla et raster -> warning."""
@@ -270,3 +306,128 @@ class TestApplyBridges:
         assert result["n_bridges"] == 1
         # les coords originales ont ete remplacees
         assert len(result["coords"]) == 2
+
+
+class TestFindNetworkExit:
+    _VR = {
+        "coords": [(45.92, 6.87), (45.925, 6.88)],
+        "distance_km": 2.0, "duration_s": 1200,
+        "shape_encoded": "fake", "maneuvers": [],
+        "snap_start": (45.92, 6.87), "snap_end": (45.925, 6.88),
+        "snap_start_m": 0, "snap_end_m": 0,
+    }
+
+    @patch("alpineroute.routing.network.valhalla_route")
+    @patch("alpineroute.routing.network.parse_locate_snap")
+    @patch("alpineroute.routing.network.valhalla_locate")
+    def test_success(self, mock_locate, mock_parse, mock_route):
+        mock_locate.return_value = [{"edges": [{}]}]
+        mock_parse.return_value = (45.925, 6.88)
+        mock_route.return_value = self._VR
+
+        result = find_network_exit((45.92, 6.87), (45.926, 6.881))
+        assert result is not None
+        assert "exit_point" in result
+        assert "approach" in result
+        # exit_point = dernier point reel de la route, pas le snap /locate
+        assert result["exit_point"] == (45.925, 6.88)  # = _VR["coords"][-1]
+
+    @patch("alpineroute.routing.network.valhalla_route")
+    @patch("alpineroute.routing.network.parse_locate_snap")
+    @patch("alpineroute.routing.network.valhalla_locate")
+    def test_exit_uses_actual_route_end(self, mock_locate, mock_parse, mock_route):
+        """exit_point doit etre coords[-1] de la route, pas le snap /locate."""
+        mock_locate.return_value = [{"edges": [{}]}]
+        # /locate retourne un point proche de la dest
+        mock_parse.return_value = (45.926, 6.881)
+        # mais la route finit ailleurs (Valhalla re-snappe en interne)
+        actual_end = (45.923, 6.875)
+        vr = dict(self._VR)
+        vr["coords"] = [(45.92, 6.87), actual_end]
+        mock_route.return_value = vr
+
+        result = find_network_exit((45.92, 6.87), (45.926, 6.881))
+        assert result is not None
+        assert result["exit_point"] == actual_end
+
+    @patch("alpineroute.routing.network.valhalla_locate")
+    def test_locate_fails(self, mock_locate):
+        mock_locate.return_value = None
+        result = find_network_exit((45.92, 6.87), (45.93, 6.89))
+        assert result is None
+
+    @patch("alpineroute.routing.network.parse_locate_snap")
+    @patch("alpineroute.routing.network.valhalla_locate")
+    def test_snap_too_far(self, mock_locate, mock_parse):
+        mock_locate.return_value = [{"edges": [{}]}]
+        mock_parse.return_value = (45.94, 6.90)
+        result = find_network_exit((45.92, 6.87), (45.926, 6.881))
+        assert result is None
+
+    @patch("alpineroute.routing.network.valhalla_route")
+    @patch("alpineroute.routing.network.parse_locate_snap")
+    @patch("alpineroute.routing.network.valhalla_locate")
+    def test_route_fails(self, mock_locate, mock_parse, mock_route):
+        mock_locate.return_value = [{"edges": [{}]}]
+        mock_parse.return_value = (45.925, 6.88)
+        mock_route.return_value = None
+        result = find_network_exit((45.92, 6.87), (45.926, 6.881))
+        assert result is None
+
+    @patch("alpineroute.routing.network.valhalla_route")
+    @patch("alpineroute.routing.network.parse_locate_snap")
+    @patch("alpineroute.routing.network.valhalla_locate")
+    def test_useless_approach_rejected(self, mock_locate, mock_parse, mock_route):
+        """Approche qui ne rapproche pas de la dest -> rejetee."""
+        mock_locate.return_value = [{"edges": [{}]}]
+        mock_parse.return_value = (45.926, 6.881)
+        # l'approche finit au meme endroit que le start (detour inutile)
+        vr = dict(self._VR)
+        vr["coords"] = [(45.92, 6.87), (45.921, 6.871)]
+        mock_route.return_value = vr
+
+        # end est a (45.93, 6.89) -- exit (45.921) n'est pas plus proche que start (45.92)
+        result = find_network_exit((45.92, 6.87), (45.93, 6.89))
+        assert result is None
+
+    @patch("alpineroute.routing.network.valhalla_route")
+    @patch("alpineroute.routing.network.parse_locate_snap")
+    @patch("alpineroute.routing.network.valhalla_locate")
+    def test_result_has_no_continuation(self, mock_locate, mock_parse, mock_route):
+        """Resultat = {exit_point, approach, snap_m}, pas de continuation."""
+        mock_locate.return_value = [{"edges": [{}]}]
+        mock_parse.return_value = (45.925, 6.88)
+        mock_route.return_value = self._VR
+
+        result = find_network_exit((45.92, 6.87), (45.926, 6.881))
+        assert result is not None
+        assert "exit_point" in result
+        assert "approach" in result
+        assert "snap_m" in result
+        assert "continuation" not in result
+
+
+class TestFindNetworkEntry:
+    @patch("alpineroute.routing.network.valhalla_route")
+    @patch("alpineroute.routing.network.parse_locate_snap")
+    @patch("alpineroute.routing.network.valhalla_locate")
+    def test_success(self, mock_locate, mock_parse, mock_route):
+        mock_locate.return_value = [{"edges": [{}]}]
+        mock_parse.return_value = (45.921, 6.871)
+        mock_route.return_value = {
+            "coords": [(45.921, 6.871), (45.93, 6.89)],
+            "distance_km": 3.0, "duration_s": 1800,
+            "shape_encoded": "fake", "maneuvers": [],
+            "snap_start": (45.921, 6.871), "snap_end": (45.93, 6.89),
+            "snap_start_m": 0, "snap_end_m": 0,
+        }
+        result = find_network_entry((45.920, 6.870), (45.93, 6.89))
+        assert result is not None
+        assert "entry_point" in result
+        assert "continuation" in result
+
+    @patch("alpineroute.routing.network.valhalla_locate")
+    def test_locate_fails(self, mock_locate):
+        mock_locate.return_value = None
+        result = find_network_entry((45.92, 6.87), (45.93, 6.89))
+        assert result is None

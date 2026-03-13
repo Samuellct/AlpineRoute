@@ -148,15 +148,44 @@ def valhalla_route(start_wgs84, end_wgs84, max_difficulty=None):
                 "length_km": m.get("length", 0),
             })
 
+        # distance entre points demandes et points snappes par Valhalla
+        snap_start = coords[0] if coords else (lat1, lon1)
+        snap_end = coords[-1] if coords else (lat2, lon2)
+        snap_start_m = haversine_km(lat1, lon1, snap_start[0], snap_start[1]) * 1000
+        snap_end_m = haversine_km(lat2, lon2, snap_end[0], snap_end[1]) * 1000
+
         return {
             "coords": coords,
             "distance_km": summary["length"],
             "duration_s": summary["time"],
             "shape_encoded": shape_enc,
             "maneuvers": maneuvers,
+            "snap_start": snap_start,
+            "snap_end": snap_end,
+            "snap_start_m": snap_start_m,
+            "snap_end_m": snap_end_m,
         }
     except (KeyError, IndexError) as e:
         raise ValhallaError(f"Reponse Valhalla inattendue: {e}")
+
+
+def parse_locate_snap(locate_result):
+    """Extrait le point snappe depuis la reponse /locate Valhalla.
+    Retourne (lat, lon) ou None."""
+    if not locate_result or not isinstance(locate_result, list):
+        return None
+    loc = locate_result[0]
+    if not isinstance(loc, dict):
+        return None
+    edges = loc.get("edges")
+    if not edges:
+        return None
+    e = edges[0]
+    snap_lat = e.get("correlated_lat")
+    snap_lon = e.get("correlated_lon")
+    if snap_lat is not None and snap_lon is not None:
+        return (snap_lat, snap_lon)
+    return None
 
 
 def haversine_km(lat1, lon1, lat2, lon2):
