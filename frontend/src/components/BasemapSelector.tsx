@@ -13,6 +13,8 @@ const overlays: { id: OverlayId; label: string }[] = [
   { id: 'slopes', label: 'Pentes' },
   { id: 'glaciers', label: 'Glaciers' },
   { id: 'cost', label: 'Cout' },
+  { id: 'alpine-routes', label: 'Traces' },
+  { id: 'segments', label: 'Segments' },
 ]
 
 export default function BasemapSelector() {

@@ -7,7 +7,7 @@ import { TerraDrawMapLibreGLAdapter } from 'terra-draw-maplibre-gl-adapter'
 import { useApp } from '../context'
 import { getSelectedRoute } from '../types'
 import type { BasemapId, Coord3D, ZoneType } from '../types'
-import { useSlopesOverlay, useGlaciersOverlay, useCostOverlay } from '../hooks/useOverlays'
+import { useSlopesOverlay, useGlaciersOverlay, useCostOverlay, useAlpineRoutesOverlay, useSegmentsOverlay } from '../hooks/useOverlays'
 import BasemapSelector from './BasemapSelector'
 
 // position par defaut
@@ -299,6 +299,8 @@ export default function RouteMap() {
   useSlopesOverlay(mapRef.current, state.activeOverlays)
   useGlaciersOverlay(mapRef.current, state.activeOverlays)
   useCostOverlay(mapRef.current, state.activeOverlays, state.routeResult)
+  useAlpineRoutesOverlay(mapRef.current, state.activeOverlays)
+  useSegmentsOverlay(mapRef.current, state.activeOverlays)
 
   // helper pour creer/deplacer un marker
   const upsertMarker = useCallback((

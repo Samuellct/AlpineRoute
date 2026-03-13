@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.0.0-beta]
+
+### Added
+- Recherche textuelle Nominatim pour départ/arrivée
+- Affichage stratégie de routage (Reseau/Hybride/Raster) avec badge coloré
+- Affichage des couches de donnée utilisées
+- warning si Valhalla indisponible
+- Calque traces alpinisme (couleur par cotation, tooltip hover)
+- Calque segments terrain (pointille jaune, tooltip hover)
+- Hook useNominatim avec debounce 500ms
+- Appels API fetchAlpineRoutesGeoJSON, fetchSegmentsGeoJSON
+
+### Changed
+- Champs départ/arrivée : champ texte recherche Nominatim + coordonnées au clic carte
+- Types TS : strategy, coverage, snap, layers_used, valhalla_available dans RouteResult
+- OverlayId élargi : alpine-routes, segments
+
 ## [2.0.0-alpha.7]
 
 ### Changed

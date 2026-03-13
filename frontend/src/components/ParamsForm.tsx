@@ -1,4 +1,7 @@
+import { useState } from 'react'
 import { useApp } from '../context'
+import { useNominatim } from '../hooks/useNominatim'
+import type { MarkerPoint } from '../types'
 
 const MONTHS = [
   'Janvier', 'Fevrier', 'Mars', 'Avril', 'Mai', 'Juin',
@@ -7,8 +10,51 @@ const MONTHS = [
 
 const RESOLUTIONS = [0.5, 1.0, 2.0, 5.0, 10.0]
 
-function formatCoord(lng: number, lat: number): string {
-  return `${lat.toFixed(5)}, ${lng.toFixed(5)}`
+// champ de recherche Nominatim + affichage coords
+function SearchField({ label, point, onSelect }: {
+  label: string
+  point: MarkerPoint | null
+  onSelect: (pt: MarkerPoint) => void
+}) {
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+  const { results, loading } = useNominatim(query, open)
+
+  // coords formatees si point defini par clic carte
+  const displayValue = point && !open
+    ? `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`
+    : query
+
+  return (
+    <div className="relative">
+      <label className="text-gray-400 text-xs">{label}</label>
+      <input
+        value={displayValue}
+        onChange={e => { setQuery(e.target.value); setOpen(true) }}
+        onFocus={() => { if (!point) setOpen(true) }}
+        onBlur={() => setTimeout(() => setOpen(false), 200)}
+        placeholder="Rechercher un lieu..."
+        className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white text-sm"
+      />
+      {open && results.length > 0 && (
+        <div className="absolute z-30 w-full bg-gray-800 border border-gray-700 rounded mt-1 max-h-48 overflow-y-auto shadow-lg">
+          {results.map((r, i) => (
+            <div key={i}
+              onMouseDown={() => {
+                onSelect({ lat: parseFloat(r.lat), lng: parseFloat(r.lon) })
+                setQuery(r.display_name.split(',')[0])
+                setOpen(false)
+              }}
+              className="px-2 py-1.5 text-sm text-white hover:bg-gray-700 cursor-pointer truncate"
+            >
+              {r.display_name}
+            </div>
+          ))}
+        </div>
+      )}
+      {loading && <div className="text-[10px] text-gray-500 mt-0.5">Recherche...</div>}
+    </div>
+  )
 }
 
 export default function ParamsForm() {
@@ -18,23 +64,17 @@ export default function ParamsForm() {
 
   return (
     <div className="flex flex-col gap-3 text-sm">
-      {/* coords */}
-      <div>
-        <label className="text-gray-400 text-xs">Départ</label>
-        <div className="text-white">
-          {state.startPoint
-            ? formatCoord(state.startPoint.lng, state.startPoint.lat)
-            : 'Cliquer sur la carte'}
-        </div>
-      </div>
-      <div>
-        <label className="text-gray-400 text-xs">Arrivée</label>
-        <div className="text-white">
-          {state.endPoint
-            ? formatCoord(state.endPoint.lng, state.endPoint.lat)
-            : 'Cliquer sur la carte'}
-        </div>
-      </div>
+      {/* coords / recherche */}
+      <SearchField
+        label="Depart"
+        point={state.startPoint}
+        onSelect={pt => dispatch({ type: 'SET_START_POINT', point: pt })}
+      />
+      <SearchField
+        label="Arrivee"
+        point={state.endPoint}
+        onSelect={pt => dispatch({ type: 'SET_END_POINT', point: pt })}
+      />
 
       {/* resolution */}
       <div>
@@ -84,7 +124,7 @@ export default function ParamsForm() {
         </select>
       </div>
 
-      {/* mode précis (anisotrope) */}
+      {/* mode precis (anisotrope) */}
       <label className="flex items-center gap-2 cursor-pointer">
         <input
           type="checkbox"

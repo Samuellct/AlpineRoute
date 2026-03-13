@@ -145,6 +145,29 @@ export async function deleteZone(id: number): Promise<void> {
 
 
 // =====================================================
+//  Alpine routes + segments
+// =====================================================
+
+export async function fetchAlpineRoutesGeoJSON(
+  massif?: string,
+): Promise<GeoJSON.FeatureCollection> {
+  const params = massif ? `?massif=${encodeURIComponent(massif)}` : ''
+  const resp = await fetch(`/api/alpine-routes/geojson${params}`)
+  if (!resp.ok) throw new Error(`Erreur ${resp.status}`)
+  return resp.json()
+}
+
+export async function fetchSegmentsGeoJSON(
+  segmentType?: string,
+): Promise<GeoJSON.FeatureCollection> {
+  const params = segmentType ? `?segment_type=${encodeURIComponent(segmentType)}` : ''
+  const resp = await fetch(`/api/terrain-segments/geojson${params}`)
+  if (!resp.ok) throw new Error(`Erreur ${resp.status}`)
+  return resp.json()
+}
+
+
+// =====================================================
 //  Overlays (glaciers, cost surface)
 // =====================================================
 

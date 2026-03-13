@@ -13,6 +13,7 @@ export interface RouteProperties {
   cost_total: number
   n_points: number
   resolution_m: number
+  strategy?: string
 }
 
 export interface RouteFeature {
@@ -32,6 +33,12 @@ export interface RouteResult {
   n_routes?: number
   saved_route_id?: number
   warnings?: string[]
+  strategy?: string
+  valhalla_available?: boolean
+  layers_used?: string[]
+  coverage?: string
+  snap_start_m?: number
+  snap_end_m?: number
 }
 
 export interface SSEMessage {
@@ -57,7 +64,7 @@ export interface MarkerPoint {
 
 export type BasemapId = 'plan' | 'satellite' | 'topo-global' | 'satellite-global'
 
-export type OverlayId = 'slopes' | 'cost' | 'glaciers'
+export type OverlayId = 'slopes' | 'cost' | 'glaciers' | 'alpine-routes' | 'segments'
 
 // -- historique --
 
@@ -104,6 +111,15 @@ export interface ZoneCreatePayload {
 }
 
 export type SidebarTab = 'calcul' | 'historique'
+
+// -- nominatim --
+
+export interface NominatimResult {
+  display_name: string
+  lat: string
+  lon: string
+  type: string
+}
 
 // helper route affichée
 export function getSelectedRoute(
