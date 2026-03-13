@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0-alpha.7]
+
+### Changed
+- PBF Valhalla : rhone-alpes -> alps-latest (arc alpin complet)
+- VALID_LAT/LON_RANGE élargi (41-50 / -2-18) pour accepter les autres massifs français
+- Healthcheck Docker Valhalla : start_period 300s -> 800s
+
+### Added
+- Garde couverture PBF : skip Valhalla si points hors bbox Alps
+- Ghost route : rejet boucles (first==last <10m) et routes <3 points
+- Champs réponse API : coverage, snap_start_m, snap_end_m, warnings
+- Documentation procédure maj PBF (docs/data-sources.md)
+
+### Fixed
+- Warnings pas toujours inclus dans la réponse API (network path)
+
 ## [2.0.0-alpha.6]
 
 ### Fixed

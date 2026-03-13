@@ -7,7 +7,7 @@ services:
     volumes:
       - valhalla_tiles:/custom_files
     environment:
-      - tile_urls=http://download.geofabrik.de/europe/france/rhone-alpes-latest.osm.pbf
+      - tile_urls=http://download.geofabrik.de/europe/alps-latest.osm.pbf
       - use_tiles_ignore_pbf=True
       - serve_tiles=True
       - build_elevation=True
@@ -18,7 +18,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 300s
+      start_period: 800s
 
   backend:
     restart: unless-stopped

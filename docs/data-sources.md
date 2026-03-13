@@ -95,3 +95,24 @@ Couverture du sol a 10 m pour les multiplicateurs de cout par type de terrain.
 - **Reference** : Zanaga D. et al. (2022). *ESA WorldCover 10 m 2021 v200.*
 
 Les multiplicateurs par classe sont definis dans `config.py` (`WORLDCOVER_MULTIPLIERS`). Voir [cost-function.md](cost-function.md) pour le detail.
+
+## OSM PBF (Valhalla)
+
+Réseau routier et sentiers utilisé par Valhalla pour le routage sur le réseau OSM.
+
+- **Produit** : Extrait PBF Geofabrik
+- **Zone** : Alps (`alps-latest.osm.pbf`)
+- **Couverture** : Arc alpin complet FR/IT/CH/AT/SI/DE (~4E-17.5E, ~43N-49N)
+- **Acces** : http://download.geofabrik.de/europe/alps-latest.osm.pbf
+- **Mise a jour** : Geofabrik quotidien
+- **Licence** : ODbL (OpenStreetMap)
+
+### Procédure de mise à jour PBF
+
+1. Modifier `VALHALLA_PBF_URL` dans `config.py` avec la nouvelle URL
+2. Modifier `tile_urls` dans `docker-compose.yml`
+3. Mettre à jour `VALHALLA_COVERAGE_BBOX` dans `config.py` si la zone change
+4. Passer `force_rebuild=True` dans `docker-compose.yml`
+5. `docker compose down && docker compose up -d` (delete l'ancien volume avec l'ancien fichier pbf)
+6. Attendre le rebuild des tiles (~10-20 min pour Alps, ~5 min pour Rhone-Alpes)
+7. Remettre `force_rebuild=False` après le build

@@ -250,6 +250,9 @@ class TestPipelineIntegration:
         assert "valhalla" in result["layers_used"]
         assert result["route"] is not None
         assert result["route"]["properties"]["strategy"] == "network"
+        assert result.get("coverage") == "full"
+        assert "snap_start_m" in result
+        assert "snap_end_m" in result
 
     @patch("alpineroute.pipeline.valhalla_available", return_value=False)
     @patch("alpineroute.pipeline.get_barrier_masks", return_value=None)
@@ -437,3 +440,113 @@ class TestPipelineIntegration:
         assert result["status"] == "ok"
         assert result["strategy"] == "raster"
         assert result["valhalla_available"] is True
+
+    @patch("alpineroute.pipeline.valhalla_available", return_value=True)
+    @patch("alpineroute.pipeline.valhalla_route")
+    @patch("alpineroute.pipeline.get_barrier_masks", return_value=None)
+    @patch("alpineroute.pipeline.get_trail_cost", return_value=None)
+    @patch("alpineroute.pipeline.get_glacier_mask", return_value=None)
+    @patch("alpineroute.pipeline.get_landcover_cost", return_value=None)
+    @patch("alpineroute.pipeline.get_dem")
+    @patch("alpineroute.pipeline.list_zones", return_value=[])
+    @patch("alpineroute.pipeline.compute_bbox")
+    @patch("alpineroute.pipeline.wgs84_to_pixel")
+    def test_out_of_coverage_skips_valhalla(self, mock_w2p, mock_bbox,
+                                             mock_zones, mock_get_dem,
+                                             mock_lc, mock_gl, mock_trail,
+                                             mock_barrier, mock_vroute,
+                                             mock_vavail, mini_dem_path):
+        """Points hors coverage Alps -> pas d'appel Valhalla, raster direct."""
+        mock_get_dem.return_value = mini_dem_path
+        mock_bbox.return_value = {"bbox_l93": _BBOX_L93, "bbox_wgs84": _BBOX_WGS84}
+        mock_w2p.side_effect = _fake_wgs84_to_pixel_start_end((5, 5), (45, 45))
+
+        from alpineroute.pipeline import run_pipeline
+        req = _fake_req(start_lat=42.5, start_lon=0.5,
+                        end_lat=42.6, end_lon=0.6)
+        result = run_pipeline(req)
+
+        assert result["strategy"] == "raster"
+        assert result["coverage"] == "none"
+        assert "warnings" in result
+        mock_vroute.assert_not_called()
+
+    @patch("alpineroute.pipeline.valhalla_available", return_value=True)
+    @patch("alpineroute.pipeline.valhalla_route")
+    @patch("alpineroute.pipeline.find_network_exit", return_value=None)
+    @patch("alpineroute.pipeline.find_network_entry", return_value=None)
+    @patch("alpineroute.pipeline.get_barrier_masks", return_value=None)
+    @patch("alpineroute.pipeline.get_trail_cost", return_value=None)
+    @patch("alpineroute.pipeline.get_glacier_mask", return_value=None)
+    @patch("alpineroute.pipeline.get_landcover_cost", return_value=None)
+    @patch("alpineroute.pipeline.get_dem")
+    @patch("alpineroute.pipeline.list_zones", return_value=[])
+    @patch("alpineroute.pipeline.compute_bbox")
+    @patch("alpineroute.pipeline.wgs84_to_pixel")
+    def test_ghost_route_loop_rejected(self, mock_w2p, mock_bbox, mock_zones,
+                                        mock_get_dem, mock_lc, mock_gl,
+                                        mock_trail, mock_barrier,
+                                        mock_entry, mock_exit,
+                                        mock_vroute, mock_vavail, mini_dem_path):
+        """Route en boucle (first~=last) -> rejet ghost."""
+        mock_vroute.return_value = {
+            "coords": [(45.865, 6.865), (45.866, 6.866), (45.865, 6.865)],
+            "distance_km": 0.5,
+            "duration_s": 300,
+            "shape_encoded": "fake",
+            "maneuvers": [],
+            "snap_start": (45.865, 6.865),
+            "snap_end": (45.865, 6.865),
+            "snap_start_m": 10.0,
+            "snap_end_m": 10.0,
+        }
+        mock_get_dem.return_value = mini_dem_path
+        mock_bbox.return_value = {"bbox_l93": _BBOX_L93, "bbox_wgs84": _BBOX_WGS84}
+        mock_w2p.side_effect = _fake_wgs84_to_pixel_start_end((5, 5), (45, 45))
+
+        from alpineroute.pipeline import run_pipeline
+        req = _fake_req()
+        result = run_pipeline(req)
+
+        assert result["status"] == "ok"
+        assert result["strategy"] == "raster"
+
+    @patch("alpineroute.pipeline.valhalla_available", return_value=True)
+    @patch("alpineroute.pipeline.valhalla_route")
+    @patch("alpineroute.pipeline.find_network_exit", return_value=None)
+    @patch("alpineroute.pipeline.find_network_entry", return_value=None)
+    @patch("alpineroute.pipeline.get_barrier_masks", return_value=None)
+    @patch("alpineroute.pipeline.get_trail_cost", return_value=None)
+    @patch("alpineroute.pipeline.get_glacier_mask", return_value=None)
+    @patch("alpineroute.pipeline.get_landcover_cost", return_value=None)
+    @patch("alpineroute.pipeline.get_dem")
+    @patch("alpineroute.pipeline.list_zones", return_value=[])
+    @patch("alpineroute.pipeline.compute_bbox")
+    @patch("alpineroute.pipeline.wgs84_to_pixel")
+    def test_ghost_route_too_few_points(self, mock_w2p, mock_bbox, mock_zones,
+                                         mock_get_dem, mock_lc, mock_gl,
+                                         mock_trail, mock_barrier,
+                                         mock_entry, mock_exit,
+                                         mock_vroute, mock_vavail, mini_dem_path):
+        """Route avec < 3 points -> rejet ghost."""
+        mock_vroute.return_value = {
+            "coords": [(45.865, 6.865), (45.868, 6.868)],
+            "distance_km": 1.2,
+            "duration_s": 600,
+            "shape_encoded": "fake",
+            "maneuvers": [],
+            "snap_start": (45.865, 6.865),
+            "snap_end": (45.868, 6.868),
+            "snap_start_m": 10.0,
+            "snap_end_m": 15.0,
+        }
+        mock_get_dem.return_value = mini_dem_path
+        mock_bbox.return_value = {"bbox_l93": _BBOX_L93, "bbox_wgs84": _BBOX_WGS84}
+        mock_w2p.side_effect = _fake_wgs84_to_pixel_start_end((5, 5), (45, 45))
+
+        from alpineroute.pipeline import run_pipeline
+        req = _fake_req()
+        result = run_pipeline(req)
+
+        assert result["status"] == "ok"
+        assert result["strategy"] == "raster"

@@ -11,6 +11,7 @@ from alpineroute.config import (
     MAX_ROUTE_POINTS_API, NODATA_VALUE, DB_PATH,
     ISOTROPIC_WARNING_DPLUS_M, STREAM_CROSSING_PENALTY,
     SNAP_MAX_DISTANCE_M, GHOST_ROUTE_MIN_DISTANCE_KM, HYBRID_BBOX_MARGIN_M,
+    VALHALLA_COVERAGE_BBOX,
 )
 from alpineroute.utils import (
     compute_bbox, load_dem, wgs84_to_pixel, pixel_to_l93,
@@ -76,6 +77,12 @@ def _progress(callback, step, pct_within_step=1.0):
     base = sum(_STEP_WEIGHTS[s] for s in steps[:idx])
     current = base + _STEP_WEIGHTS[step] * pct_within_step
     callback(int(current), step)
+
+
+def _in_coverage(lat, lon):
+    """Check si un point WGS84 est dans la bbox du PBF Valhalla."""
+    w, s, e, n = VALHALLA_COVERAGE_BBOX
+    return s <= lat <= n and w <= lon <= e
 
 
 def _wrap_dem_progress(callback):
@@ -148,6 +155,7 @@ def run_pipeline(req, progress_callback=None):
     """
     start = (req.start_lat, req.start_lon)
     end = (req.end_lat, req.end_lon)
+    warnings = []
 
     # -- 0. tentative reseau (Valhalla)
     _progress(progress_callback, "network", 0)
@@ -161,9 +169,22 @@ def run_pipeline(req, progress_callback=None):
     except Exception:
         pass
 
+    # verif couverture PBF avant d'appeler Valhalla
+    if valhalla_up:
+        start_ok = _in_coverage(start[0], start[1])
+        end_ok = _in_coverage(end[0], end[1])
+        if not start_ok or not end_ok:
+            logger.warning("hors couverture PBF: start_ok=%s end_ok=%s", start_ok, end_ok)
+            warnings.append("Point(s) hors couverture Valhalla, routage raster.")
+            valhalla_up = False
+
     if valhalla_up:
         try:
             vr = valhalla_route(start, end)
+
+            if vr is not None:
+                logger.info("valhalla: dist=%.2fkm snap_start=%.0fm snap_end=%.0fm",
+                            vr["distance_km"], vr["snap_start_m"], vr["snap_end_m"])
 
             # validation snap + ghost route
             if vr is not None:
@@ -182,6 +203,18 @@ def run_pipeline(req, progress_callback=None):
                     logger.warning("snap start trop loin: %.0fm > %.0fm",
                                    vr["snap_start_m"], SNAP_MAX_DISTANCE_M)
                     vr = None
+
+            # ghost: boucle (premier == dernier point a 10m pres)
+            if vr is not None and len(vr["coords"]) >= 2:
+                c0, cN = vr["coords"][0], vr["coords"][-1]
+                if haversine_km(c0[0], c0[1], cN[0], cN[1]) * 1000 < 10:
+                    logger.warning("ghost route: boucle (first~=last)")
+                    vr = None
+
+            # ghost: route avec < 3 points
+            if vr is not None and len(vr["coords"]) < 3:
+                logger.warning("ghost route: %d points seulement", len(vr["coords"]))
+                vr = None
 
             if vr is not None:
                 if is_detour_excessive(vr["distance_km"], start, end):
@@ -205,7 +238,9 @@ def run_pipeline(req, progress_callback=None):
             strategy = "raster"
 
     _progress(progress_callback, "network", 1.0)
-    logger.info("strategy: %s (valhalla_up=%s)", strategy, valhalla_up)
+    logger.info("strategy=%s valhalla_up=%s hybrid_info=%s",
+                strategy, valhalla_up, "exit" if hybrid_info and "exit_point" in hybrid_info
+                else "entry" if hybrid_info else None)
 
     # -- cas network: pas besoin du pipeline raster
     if strategy == "network":
@@ -247,7 +282,12 @@ def run_pipeline(req, progress_callback=None):
             "strategy": "network",
             "valhalla_available": True,
             "layers_used": ["valhalla"],
+            "coverage": "full",
+            "snap_start_m": round(valhalla_result.get("snap_start_m", 0), 1),
+            "snap_end_m": round(valhalla_result.get("snap_end_m", 0), 1),
         }
+        if warnings:
+            result["warnings"] = warnings
         if saved_route_id is not None:
             result["saved_route_id"] = saved_route_id
         return result
@@ -369,6 +409,12 @@ def run_pipeline(req, progress_callback=None):
         logger.warning("segments terrain echec (non bloquant): %s", e)
 
     _progress(progress_callback, "osm", 1.0)
+
+    _layers = []
+    if trail_cost is not None: _layers.append("trails")
+    if barrier_masks is not None: _layers.append("barriers")
+    if glacier_mask is not None: _layers.append("glacier")
+    logger.info("layers loaded: %s", _layers or "aucun")
 
     # -- 6. cost surface
     _progress(progress_callback, "cost", 0)
@@ -623,7 +669,7 @@ def run_pipeline(req, progress_callback=None):
 
     _progress(progress_callback, "result", 1.0)
 
-    warnings = []
+    # warning isotrope
     if not use_aniso and routes:
         dplus = routes[0]["properties"]["dplus_m"]
         dminus = routes[0]["properties"]["dminus_m"]
@@ -646,6 +692,14 @@ def run_pipeline(req, progress_callback=None):
     if strategy == "hybrid":
         layers_used.append("valhalla")
 
+    # coverage status
+    if not valhalla_up:
+        coverage = "none"
+    elif strategy in ("hybrid", "network"):
+        coverage = "full"
+    else:
+        coverage = "partial"
+
     result = {
         "status": "ok",
         "route": routes[0] if routes else None,
@@ -653,7 +707,13 @@ def run_pipeline(req, progress_callback=None):
         "strategy": strategy,
         "valhalla_available": valhalla_up,
         "layers_used": layers_used,
+        "coverage": coverage,
     }
+
+    # snap si Valhalla a ete consulte
+    if valhalla_result is not None:
+        result["snap_start_m"] = round(valhalla_result.get("snap_start_m", 0), 1)
+        result["snap_end_m"] = round(valhalla_result.get("snap_end_m", 0), 1)
 
     if warnings:
         result["warnings"] = warnings

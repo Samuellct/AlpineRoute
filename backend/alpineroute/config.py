@@ -135,7 +135,7 @@ STREAM_CROSSING_PENALTY = 6.0
 VALHALLA_BASE_URL = os.environ.get("ALPINEROUTE_VALHALLA_URL", "http://localhost:8002")
 VALHALLA_TIMEOUT_S = 30
 VALHALLA_MAX_HIKING_DIFFICULTY = 6   # echelle 0-6 Valhalla pr les chemins T1-T6 osm
-VALHALLA_PBF_URL = "http://download.geofabrik.de/europe/france/rhone-alpes-latest.osm.pbf"
+VALHALLA_PBF_URL = "http://download.geofabrik.de/europe/alps-latest.osm.pbf"
 VALHALLA_DETOUR_THRESHOLD = 3.0   # ratio dist_valhalla / vol_oiseau
 VALHALLA_MIN_DIRECT_M = 500       # en dessous, pas de test detour
 
@@ -148,6 +148,10 @@ BRIDGE_BBOX_MARGIN_M = 200        # marge autour du pont pour le pathfinding loc
 SNAP_MAX_DISTANCE_M = 500
 GHOST_ROUTE_MIN_DISTANCE_KM = 1.0   # en dessous, route fantome detectee
 HYBRID_BBOX_MARGIN_M = 4000         # marge bbox pour CAS B (assez large pour alternatives)
+
+# bbox couverture PBF Alps (WGS84) -- west, south, east, north
+# couvre l'arc alpin FR/IT/CH/AT/SI/DE, a ajuster si changement de PBF
+VALHALLA_COVERAGE_BBOX = (4.0, 43.0, 17.5, 49.0)
 
 # ---- hillshade ----
 HILLSHADE_AZIMUTH = 315
@@ -164,8 +168,8 @@ API_PORT = int(os.environ.get("ALPINEROUTE_PORT", "8000"))
 CORS_ORIGINS = os.environ.get("ALPINEROUTE_CORS_ORIGINS", "*").split(",")
 
 # ---- validation inputs ----
-VALID_LAT_RANGE = (43.0, 48.0)   # Alpes grosso modo
-VALID_LON_RANGE = (4.0, 16.0)
+VALID_LAT_RANGE = (41.0, 50.0)    # France + Alpes + Pyrenees + Benelux
+VALID_LON_RANGE = (-2.0, 18.0)    # Atlantique -> Alpes orientales
 VALID_RESOLUTIONS = (0.5, 1.0, 2.0, 5.0, 10.0)
 MAX_GRID_PIXELS = 200_000_000    # garde-fou memoire
 MAX_GRID_PIXELS_ANISO = int(os.environ.get(
