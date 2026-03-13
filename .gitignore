@@ -18,10 +18,13 @@ projet.md
 *.laz
 *.las
 *.jp2
-data/
-data/osm/*.pbf
+data/cache/
+data/rgi/
+data/alpineroute.db
+data/osm/
 bugs/
 Phase_00_testsInitiaux/
+traces_gpx_a_trier/
 
 # ========== Python ==========
 __pycache__/

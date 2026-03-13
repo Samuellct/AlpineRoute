@@ -1,0 +1,46 @@
+[
+    {
+        "type": "route",
+        "gpx_file": "grand-paradis/grandParadis_glacierGP.gpx",
+        "massif": "Grand-Paradis",
+        "summit": "Grand Paradis",
+        "voie": "glacier du Grand Paradis",
+        "grade": "F"
+    },
+    {
+        "type": "route",
+        "gpx_file": "mont-blanc/grands_montets_petite_aiguille_verte.gpx",
+        "massif": "Mont-Blanc",
+        "summit": "Petite Aiguille Verte",
+        "voie": "depuis les Grands Montets",
+        "grade": "PD+",
+        "notes": "passages en 3b, descente possible en rappel"
+    },
+    {
+        "type": "route",
+        "gpx_file": "mont-blanc/domes_de_miage_integrale.gpx",
+        "massif": "Mont-Blanc",
+        "summit": "Domes de Miage",
+        "voie": "traversee integrale E-W",
+        "grade": "PD+",
+        "notes": "depuis les Contamines, faisable en 1j, refuges possibles sur le parcours"
+    },
+    {
+        "type": "segment",
+        "gpx_file": "segments/montenvers_mer_de_glace.gpx",
+        "start_name": "Montenvers (gare)",
+        "end_name": "Mer de Glace (pied des echelles)",
+        "segment_type": "via_ferrata",
+        "trail_cost": 0.40,
+        "notes": "succession d'echelles metalliques type via ferrata, connecte reseau OSM vallee Chamonix <-> Mer de Glace"
+    },
+    {
+        "type": "segment",
+        "gpx_file": "segments/vallee_blanche_midi_helbronner.gpx",
+        "start_name": "Aiguille du Midi (sommet)",
+        "end_name": "Pointe Helbronner",
+        "segment_type": "glacier",
+        "trail_cost": 0.40,
+        "notes": "traversee Vallee Blanche sur glacier, equivalent T3"
+    }
+]
