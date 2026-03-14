@@ -238,6 +238,15 @@ def find_network_entry(start, end, max_snap_m=None):
     actual_entry = vr["coords"][0] if vr["coords"] else snap_pt
     actual_snap_m = _hav(start[0], start[1], actual_entry[0], actual_entry[1]) * 1000
 
+    # verif: le dernier point doit etre proche de la destination
+    # sinon la continuation ne sert a rien (dest off-network)
+    actual_end = vr["coords"][-1] if vr["coords"] else snap_pt
+    end_snap_m = _hav(end[0], end[1], actual_end[0], actual_end[1]) * 1000
+    if end_snap_m > max_snap_m:
+        log.info("find_network_entry: continuation n'atteint pas la dest "
+                 "(%.0fm > %.0fm), skip", end_snap_m, max_snap_m)
+        return None
+
     return {"entry_point": actual_entry, "continuation": vr, "snap_m": actual_snap_m}
 
 
