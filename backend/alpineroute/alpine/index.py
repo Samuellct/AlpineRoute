@@ -121,6 +121,17 @@ def sync_to_sqlite(entries, db_path=None):
 
 
 def reload_index(db_path=None):
-    """Wrapper: load_index + sync_to_sqlite."""
+    """Wrapper: load_index + sync_to_sqlite + rebuild graphe GPX."""
     entries = load_index()
-    return sync_to_sqlite(entries, db_path=db_path)
+    result = sync_to_sqlite(entries, db_path=db_path)
+
+    # reconstruction graphe GPX (non bloquant)
+    try:
+        from alpineroute.routing.gpx_graph import rebuild_gpx_graph
+        graph_info = rebuild_gpx_graph(entries)
+        logger.info("gpx graph: %s", graph_info)
+        result["gpx_graph"] = graph_info
+    except Exception as e:
+        logger.warning("gpx graph rebuild echec: %s", e)
+
+    return result

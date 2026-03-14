@@ -38,7 +38,9 @@ from alpineroute.routing.hybrid import (
     compute_raster_bridge, apply_bridges,
     assemble_route, reduce_bbox,
     find_network_exit, find_network_entry,
+    assemble_gpx_route,
 )
+from alpineroute.routing.gpx_graph import route_via_gpx, gpx_to_geojson_feature
 from alpineroute.alpine.segments import (
     load_segments_for_bbox, rasterize_segments, merge_trail_layers,
 )
@@ -54,6 +56,7 @@ _last_cost_surface: dict = {}
 # poids SSE par etape (total = 100%)
 _STEP_WEIGHTS = {
     "network": 5,
+    "gpx_graph": 2,
     "bbox": 0,
     "dem": 33,
     "terrain": 14,
@@ -62,7 +65,7 @@ _STEP_WEIGHTS = {
     "osm": 5,
     "cost": 5,
     "zones": 2,
-    "pathfinding": 21,
+    "pathfinding": 19,
     "result": 5,
 }
 
@@ -241,6 +244,132 @@ def run_pipeline(req, progress_callback=None):
     logger.info("strategy=%s valhalla_up=%s hybrid_info=%s",
                 strategy, valhalla_up, "exit" if hybrid_info and "exit_point" in hybrid_info
                 else "entry" if hybrid_info else None)
+
+    # -- 0b. tentative graphe GPX
+    gpx_result = None
+    if strategy != "network":
+        _progress(progress_callback, "gpx_graph", 0)
+        try:
+            gpx_result = route_via_gpx(start, end)
+            if gpx_result is not None:
+                logger.info("gpx graph: coverage=%s, %.2fkm via %s",
+                            gpx_result["coverage"], gpx_result["distance_km"],
+                            gpx_result["gpx_sources"])
+        except Exception as e:
+            logger.warning("gpx graph echec: %s", e)
+        _progress(progress_callback, "gpx_graph", 1.0)
+
+    # GPX full coverage -> assembler Valhalla approche + GPX + Valhalla sortie
+    if gpx_result is not None and gpx_result["coverage"] == "full" and valhalla_up:
+        entry_p = gpx_result["entry_portal"]
+        exit_p = gpx_result["exit_portal"]
+        try:
+            approach_vr = valhalla_route(start, entry_p["osm_coords"])
+        except Exception:
+            approach_vr = None
+        try:
+            egress_vr = valhalla_route(exit_p["osm_coords"], end)
+        except Exception:
+            egress_vr = None
+
+        # valider que l'egress ne contourne pas tout le massif
+        if egress_vr is not None and is_detour_excessive(
+                egress_vr["distance_km"], exit_p["osm_coords"], end):
+            logger.warning("gpx full: egress detour excessif (%.1fkm), drop",
+                           egress_vr["distance_km"])
+            egress_vr = None
+
+        if approach_vr is not None and is_detour_excessive(
+                approach_vr["distance_km"], start, entry_p["osm_coords"]):
+            logger.warning("gpx full: approach detour excessif (%.1fkm), drop",
+                           approach_vr["distance_km"])
+            approach_vr = None
+
+        # sans egress viable: verifier que le GPX arrive assez pres de la dest
+        # sinon degrader en partial pour que le raster comble le trou
+        if egress_vr is None:
+            exit_c = exit_p["gpx_coords"]
+            exit_to_end_m = haversine_km(
+                exit_c[0], exit_c[1], end[0], end[1]) * 1000
+            if exit_to_end_m > SNAP_MAX_DISTANCE_M:
+                logger.warning("gpx full -> partial: exit a %.0fm de dest, "
+                               "raster prendra le relais", exit_to_end_m)
+                gpx_result = {**gpx_result, "coverage": "partial",
+                              "gpx_exit_wgs84": exit_c}
+
+        if gpx_result["coverage"] == "full" and (
+                approach_vr is not None or egress_vr is not None):
+            gpx_feature = assemble_gpx_route(approach_vr, gpx_result, egress_vr)
+            _progress(progress_callback, "result", 0)
+
+            saved_route_id = None
+            if req.save:
+                try:
+                    props = gpx_feature["properties"]
+                    route_data = {
+                        "name": req.name,
+                        "start_lat": req.start_lat, "start_lon": req.start_lon,
+                        "end_lat": req.end_lat, "end_lon": req.end_lon,
+                        "resolution": req.resolution, "month": req.month,
+                        "acclimatized": req.acclimatized,
+                        "distance_m": props["distance_km"] * 1000,
+                        "dplus_m": props["dplus_m"], "dminus_m": props["dminus_m"],
+                        "time_tobler_h": props["time_tobler_h"],
+                        "glacier_pct": 0, "cost_total": 0,
+                        "computation_time_s": 0,
+                        "geojson": json.dumps(gpx_feature),
+                    }
+                    saved_route_id = save_route(DB_PATH, route_data)
+                except Exception as e:
+                    logger.warning("auto-save gpx_hybrid failed: %s", e)
+
+            _progress(progress_callback, "result", 1.0)
+            result = {
+                "status": "ok",
+                "route": gpx_feature,
+                "computation_time_s": 0,
+                "strategy": "gpx_hybrid",
+                "valhalla_available": True,
+                "layers_used": ["gpx_graph", "valhalla"],
+                "coverage": "full",
+            }
+            if warnings:
+                result["warnings"] = warnings
+            if saved_route_id is not None:
+                result["saved_route_id"] = saved_route_id
+            return result
+
+    # GPX partial coverage -> Valhalla approche + GPX + raster pour le reste
+    # on injecte les points dans le pipeline hybrid existant
+    if gpx_result is not None and gpx_result["coverage"] == "partial" and valhalla_up:
+        entry_p = gpx_result["entry_portal"]
+        gpx_exit = gpx_result.get("gpx_exit_wgs84")
+        if entry_p and gpx_exit:
+            try:
+                approach_vr = valhalla_route(start, entry_p["osm_coords"])
+            except Exception:
+                approach_vr = None
+
+            # verif detour approach (ex: si entry portal est de l'autre cote du massif)
+            if approach_vr is not None and is_detour_excessive(
+                    approach_vr["distance_km"], start, entry_p["osm_coords"]):
+                logger.warning("gpx partial: approach detour excessif (%.1fkm), skip GPX",
+                               approach_vr["distance_km"])
+                approach_vr = None
+
+            if approach_vr is not None:
+                # remplacer la strategie: on fait hybrid avec le GPX au milieu
+                # le raster partira du bout du GPX vers la destination
+                strategy = "hybrid"
+                hybrid_info = {
+                    "exit_point": gpx_exit,
+                    "approach": approach_vr,
+                    "snap_m": entry_p["snap_m"],
+                    "_gpx_result": gpx_result,
+                }
+                valhalla_result = approach_vr
+                logger.info("gpx partial: approach Valhalla OK, raster depuis "
+                            "(%.5f,%.5f) -> dest", gpx_exit[0], gpx_exit[1])
 
     # -- cas network: pas besoin du pipeline raster
     if strategy == "network":
@@ -620,13 +749,40 @@ def run_pipeline(req, progress_callback=None):
     # assemblage hybrid si CAS B
     if strategy == "hybrid" and hybrid_info is not None and routes:
         raster_feature = routes[0]
-        if "exit_point" in hybrid_info:
+        gpx_partial = hybrid_info.get("_gpx_result")
+
+        if gpx_partial is not None:
+            # GPX partial: Valhalla approche + GPX milieu + raster fin
+            assembled = assemble_gpx_route(
+                hybrid_info["approach"], gpx_partial, None)
+            # concatener le raster apres le GPX
+            gpx_geojson_coords = assembled["geometry"]["coordinates"]
+            raster_coords = raster_feature["geometry"]["coordinates"]
+            merged = gpx_geojson_coords + raster_coords
+            assembled["geometry"]["coordinates"] = merged
+            r_props = raster_feature["properties"]
+            a_props = assembled["properties"]
+            a_props["distance_km"] = round(
+                a_props["distance_km"] + r_props.get("distance_km", 0), 2)
+            a_props["dplus_m"] = round(
+                a_props["dplus_m"] + r_props.get("dplus_m", 0))
+            a_props["dminus_m"] = round(
+                a_props["dminus_m"] + r_props.get("dminus_m", 0))
+            a_props["time_tobler_h"] = round(
+                a_props["time_tobler_h"] + r_props.get("time_tobler_h", 0), 1)
+            a_props["glacier_pct"] = r_props.get("glacier_pct", 0)
+            a_props["n_points"] = len(merged)
+            a_props["strategy"] = "gpx_hybrid"
+            routes[0] = assembled
+            logger.info("gpx partial assembled: Valhalla + GPX + raster")
+        elif "exit_point" in hybrid_info:
             assembled = assemble_route(
                 hybrid_info["approach"]["coords"],
                 raster_feature,
                 hybrid_info["exit_point"],
                 valhalla_stats=hybrid_info["approach"],
                 order="valhalla_first")
+            routes[0] = assembled
         else:
             assembled = assemble_route(
                 hybrid_info["continuation"]["coords"],
@@ -634,7 +790,7 @@ def run_pipeline(req, progress_callback=None):
                 hybrid_info["entry_point"],
                 valhalla_stats=hybrid_info["continuation"],
                 order="raster_first")
-        routes[0] = assembled
+            routes[0] = assembled
 
     _progress(progress_callback, "result", 0.5)
 
@@ -691,6 +847,8 @@ def run_pipeline(req, progress_callback=None):
         layers_used.append("glacier")
     if strategy == "hybrid":
         layers_used.append("valhalla")
+    if gpx_result is not None:
+        layers_used.append("gpx_graph")
 
     # coverage status
     if not valhalla_up:
@@ -700,11 +858,17 @@ def run_pipeline(req, progress_callback=None):
     else:
         coverage = "partial"
 
+    # si GPX partial a ete utilise, overrider la strategy
+    effective_strategy = strategy
+    if (gpx_result is not None and gpx_result["coverage"] == "partial"
+            and hybrid_info is not None and "_gpx_result" in hybrid_info):
+        effective_strategy = "gpx_hybrid"
+
     result = {
         "status": "ok",
         "route": routes[0] if routes else None,
         "computation_time_s": round(total_dt, 1),
-        "strategy": strategy,
+        "strategy": effective_strategy,
         "valhalla_available": valhalla_up,
         "layers_used": layers_used,
         "coverage": coverage,

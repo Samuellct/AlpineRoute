@@ -384,3 +384,90 @@ def apply_bridges(valhalla_result, detours, bridge_results):
         "duration_s": valhalla_result.get("duration_s", 0),
         "n_bridges": n_bridges,
     }
+
+
+# --- assemblage GPX overlay (Phase 11) ---
+
+def assemble_gpx_route(approach_vr, gpx_result, egress_vr, route_index=0):
+    """Raccorde 3 troncons : Valhalla approche + GPX milieu + Valhalla sortie.
+    approach_vr, egress_vr: dict Valhalla (ou None)
+    gpx_result: dict de route_via_gpx()"""
+    merged_coords = []
+    transition_points = []
+
+    # troncon approche
+    approach_dist_km = 0
+    approach_time_s = 0
+    if approach_vr is not None:
+        v_coords = [
+            [round(lon, 6), round(lat, 6), 0]
+            for lat, lon in approach_vr["coords"]
+        ]
+        merged_coords.extend(v_coords)
+        approach_dist_km = approach_vr.get("distance_km", 0)
+        approach_time_s = approach_vr.get("duration_s", 0)
+
+        # check gap approche -> GPX
+        if v_coords and gpx_result["gpx_coords"]:
+            last_v = v_coords[-1]  # [lon, lat, 0]
+            first_g = gpx_result["gpx_coords"][0]  # (lat, lon, alt)
+            gap_m = haversine_km(last_v[1], last_v[0], first_g[0], first_g[1]) * 1000
+            if gap_m > 50:
+                log.warning("raccord approche-GPX: %.0fm (> 50m)", gap_m)
+            transition_points.append([round(first_g[1], 6), round(first_g[0], 6)])
+
+    # troncon GPX
+    gpx_coords = [
+        [round(lon, 6), round(lat, 6), round(alt, 1)]
+        for lat, lon, alt in gpx_result["gpx_coords"]
+    ]
+    merged_coords.extend(gpx_coords)
+
+    # troncon sortie
+    egress_dist_km = 0
+    egress_time_s = 0
+    if egress_vr is not None:
+        e_coords = [
+            [round(lon, 6), round(lat, 6), 0]
+            for lat, lon in egress_vr["coords"]
+        ]
+
+        # check gap GPX -> sortie
+        if gpx_result["gpx_coords"] and e_coords:
+            last_g = gpx_result["gpx_coords"][-1]
+            first_e = e_coords[0]
+            gap_m = haversine_km(last_g[0], last_g[1], first_e[1], first_e[0]) * 1000
+            if gap_m > 50:
+                log.warning("raccord GPX-sortie: %.0fm (> 50m)", gap_m)
+            transition_points.append([round(last_g[1], 6), round(last_g[0], 6)])
+
+        merged_coords.extend(e_coords)
+        egress_dist_km = egress_vr.get("distance_km", 0)
+        egress_time_s = egress_vr.get("duration_s", 0)
+
+    # estim temps Tobler GPX
+    from alpineroute.routing.gpx_graph import _estimate_tobler_time
+    gpx_time_h = _estimate_tobler_time(gpx_result["gpx_coords"])
+
+    total_dist_km = approach_dist_km + gpx_result["distance_km"] + egress_dist_km
+    total_time_h = (approach_time_s + egress_time_s) / 3600 + gpx_time_h
+
+    feature = {
+        "type": "Feature",
+        "geometry": {"type": "LineString", "coordinates": merged_coords},
+        "properties": {
+            "route_index": route_index,
+            "is_optimal": route_index == 0,
+            "distance_km": round(total_dist_km, 2),
+            "dplus_m": gpx_result["dplus_m"],
+            "dminus_m": gpx_result["dminus_m"],
+            "time_tobler_h": round(total_time_h, 1),
+            "glacier_pct": 0,
+            "cost_total": 0,
+            "n_points": len(merged_coords),
+            "strategy": "gpx_hybrid",
+            "gpx_sources": gpx_result["gpx_sources"],
+            "transition_points": transition_points,
+        },
+    }
+    return feature
