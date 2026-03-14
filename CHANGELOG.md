@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.0.0-beta.2]
+
+### Added
+- Graphe GPX overlay : traces indexées forment un réseau topologique
+- Portails GPX-OSM : connexion automatique du graphe GPX au réseau osm
+- Routage multi-graphe : Valhalla approche + GPX milieu + Valhalla sortie
+- Sous-échantillonnage et fusion des noeuds GPX proches
+- Recherche par corridor : portails cherchés le long de la ligne start-end (pas juste près des extrémités)
+- Couverture partielle : Valhalla approche + GPX + raster terminal quand un seul portail OSM existe
+- Logging détaillé du graphe GPX (portails, corridor, coverage) dans les logs backend
+
+### Changed
+- Pipeline : tentative GPX graph avant fallback raster
+- SSE : nouvelle etape "gpx_graph" dans la progression
+- reload-index reconstruit aussi le graphe GPX
+- GPX_PORTAL_SNAP_M : 50 à 200m
+- Recherche corridor (ratio 35%, min 2km) remplace la recherche par rayon fixe
+
 ## [2.0.0-beta]
 
 ### Added
