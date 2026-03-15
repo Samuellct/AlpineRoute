@@ -197,8 +197,10 @@ def find_network_exit(start, end, max_snap_m=None):
                  exit_to_end_km, direct_km)
         return None
 
-    log.info("find_network_exit: locate_snap=%.0fm, actual_exit=%.0fm",
-             snap_m, actual_snap_m)
+    log.info("find_network_exit: exit=(%.5f,%.5f), locate_snap=%.0fm, "
+             "actual_exit_to_dest=%.0fm, direct=%.2fkm",
+             actual_exit[0], actual_exit[1], snap_m, actual_snap_m,
+             direct_km)
 
     return {"exit_point": actual_exit, "approach": vr, "snap_m": actual_snap_m}
 

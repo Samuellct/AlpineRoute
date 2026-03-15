@@ -77,10 +77,11 @@ ASPECT_NORTH_PENALTY_MAX = 0.3      # +30 % max sur face nord en hiver
 ASPECT_NORTH_SLOPE_THRESHOLD = 25
 
 # ---- cost function : glacier ----
-GLACIER_COST_FLAT = 1.3             # pente < 10 deg
-GLACIER_COST_MODERATE = 2.0         # 10-20 deg
-GLACIER_COST_STEEP = 4.0            # 20-30 deg
-GLACIER_COST_VERY_STEEP = 10.0      # > 30 deg
+# couts eleves: crevasses, encordement, crampons obligatoires
+GLACIER_COST_FLAT = 3.0             # pente < 10 deg (plat mais crevasses)
+GLACIER_COST_MODERATE = 5.0         # 10-20 deg
+GLACIER_COST_STEEP = 10.0           # 20-30 deg (zone de seracs)
+GLACIER_COST_VERY_STEEP = 25.0      # > 30 deg (chutes de seracs, infranchissable)
 
 # ---- cost function : rugosite ----
 ROUGHNESS_CLAMP = 5.0               # max TRI en metres

@@ -279,15 +279,40 @@ def run_pipeline(req, progress_callback=None):
                            egress_vr["distance_km"])
             egress_vr = None
 
+        # valider que l'egress atteint bien la destination (snap_end_m)
+        if egress_vr is not None and egress_vr.get("snap_end_m", 0) > SNAP_MAX_DISTANCE_M:
+            logger.warning("gpx full: egress n'atteint pas la dest (snap=%.0fm), drop",
+                           egress_vr["snap_end_m"])
+            egress_vr = None
+
         if approach_vr is not None and is_detour_excessive(
                 approach_vr["distance_km"], start, entry_p["osm_coords"]):
             logger.warning("gpx full: approach detour excessif (%.1fkm), drop",
                            approach_vr["distance_km"])
             approach_vr = None
 
+        # valider que l'approach part bien du depart (snap_start_m)
+        if approach_vr is not None and approach_vr.get("snap_start_m", 0) > SNAP_MAX_DISTANCE_M:
+            logger.warning("gpx full: approach ne part pas du depart (snap=%.0fm), drop",
+                           approach_vr["snap_start_m"])
+            approach_vr = None
+
+        # sans approach viable: verifier que le GPX part assez pres du depart
+        # sinon degrader en partial (le raster fera start -> gpx_exit -> dest)
+        if approach_vr is None and gpx_result["coverage"] == "full":
+            entry_c = entry_p["gpx_coords"]
+            entry_to_start_m = haversine_km(
+                entry_c[0], entry_c[1], start[0], start[1]) * 1000
+            if entry_to_start_m > SNAP_MAX_DISTANCE_M:
+                logger.warning("gpx full -> partial: entry a %.0fm du depart "
+                               "sans approach, raster prendra le relais",
+                               entry_to_start_m)
+                gpx_result = {**gpx_result, "coverage": "partial",
+                              "gpx_exit_wgs84": exit_p["gpx_coords"]}
+
         # sans egress viable: verifier que le GPX arrive assez pres de la dest
         # sinon degrader en partial pour que le raster comble le trou
-        if egress_vr is None:
+        if egress_vr is None and gpx_result["coverage"] == "full":
             exit_c = exit_p["gpx_coords"]
             exit_to_end_m = haversine_km(
                 exit_c[0], exit_c[1], end[0], end[1]) * 1000
@@ -355,6 +380,12 @@ def run_pipeline(req, progress_callback=None):
                     approach_vr["distance_km"], start, entry_p["osm_coords"]):
                 logger.warning("gpx partial: approach detour excessif (%.1fkm), skip GPX",
                                approach_vr["distance_km"])
+                approach_vr = None
+
+            # verif snap depart
+            if approach_vr is not None and approach_vr.get("snap_start_m", 0) > SNAP_MAX_DISTANCE_M:
+                logger.warning("gpx partial: approach snap start trop loin (%.0fm), skip",
+                               approach_vr["snap_start_m"])
                 approach_vr = None
 
             if approach_vr is not None:
@@ -436,6 +467,9 @@ def run_pipeline(req, progress_callback=None):
         else:
             raster_start = start
             raster_end = hybrid_info["entry_point"]
+        logger.info("hybrid raster: start=(%.5f,%.5f) -> end=(%.5f,%.5f)",
+                    raster_start[0], raster_start[1],
+                    raster_end[0], raster_end[1])
         bboxes = reduce_bbox(raster_start, raster_end, margin_m=HYBRID_BBOX_MARGIN_M)
     else:
         bboxes = compute_bbox(start, end)

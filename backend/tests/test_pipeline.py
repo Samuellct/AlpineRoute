@@ -681,6 +681,140 @@ class TestPipelineGpxGraph:
         # pas de gpx_hybrid early return, le pipeline raster a tourne
         mock_get_dem.assert_called_once()
 
+    @patch("alpineroute.pipeline.route_via_gpx")
+    @patch("alpineroute.pipeline.valhalla_route")
+    @patch("alpineroute.pipeline.valhalla_available", return_value=True)
+    @patch("alpineroute.pipeline.is_detour_excessive", return_value=True)
+    @patch("alpineroute.pipeline.get_barrier_masks", return_value=None)
+    @patch("alpineroute.pipeline.get_trail_cost", return_value=None)
+    @patch("alpineroute.pipeline.get_glacier_mask", return_value=None)
+    @patch("alpineroute.pipeline.get_landcover_cost", return_value=None)
+    @patch("alpineroute.pipeline.get_dem")
+    @patch("alpineroute.pipeline.list_zones", return_value=[])
+    @patch("alpineroute.pipeline.compute_bbox")
+    @patch("alpineroute.pipeline.wgs84_to_pixel")
+    def test_gpx_full_egress_snap_too_far(self, mock_w2p, mock_bbox,
+                                           mock_zones, mock_get_dem,
+                                           mock_lc, mock_gl,
+                                           mock_trail, mock_barrier,
+                                           mock_detour, mock_vavail,
+                                           mock_vroute, mock_gpx,
+                                           mini_dem_path):
+        """GPX full, egress snap_end_m > 500 -> egress dropped, partial."""
+        mock_vroute.side_effect = [
+            # main route -> detour
+            {"coords": [(45.865, 6.865), (45.866, 6.866),
+                         (45.867, 6.867), (45.868, 6.868)],
+             "distance_km": 5.0, "duration_s": 3600,
+             "shape_encoded": "fake", "maneuvers": [],
+             "snap_start": (45.865, 6.865), "snap_end": (45.868, 6.868),
+             "snap_start_m": 10.0, "snap_end_m": 15.0},
+            # approach (OK)
+            {"coords": [(45.865, 6.865), (45.866, 6.866)],
+             "distance_km": 0.3, "duration_s": 200,
+             "snap_start_m": 10.0, "snap_end_m": 15.0},
+            # egress: snap_end_m trop loin = n'atteint pas la dest
+            {"coords": [(45.867, 6.867), (45.8675, 6.8675)],
+             "distance_km": 0.2, "duration_s": 100,
+             "snap_start_m": 10.0, "snap_end_m": 800.0},
+        ]
+
+        # exit portal loin de la dest -> partial apres egress drop
+        mock_gpx.return_value = {
+            "gpx_coords": [
+                (45.866, 6.866, 3000), (45.8665, 6.8665, 3010),
+                (45.867, 6.867, 3020),
+            ],
+            "entry_portal": {"node_id": 0, "gpx_coords": (45.866, 6.866),
+                             "osm_coords": (45.866, 6.866), "snap_m": 10},
+            "exit_portal": {"node_id": 2, "gpx_coords": (45.867, 6.867),
+                            "osm_coords": (45.867, 6.867), "snap_m": 10},
+            "coverage": "full",
+            "distance_km": 0.15, "dplus_m": 20, "dminus_m": 0,
+            "gpx_sources": ["test.gpx"],
+        }
+
+        mock_get_dem.return_value = mini_dem_path
+        mock_bbox.return_value = {"bbox_l93": _BBOX_L93, "bbox_wgs84": _BBOX_WGS84}
+        mock_w2p.side_effect = _fake_wgs84_to_pixel_start_end((5, 5), (45, 45))
+
+        from alpineroute.pipeline import run_pipeline
+        # dest loin du exit portal
+        req = _fake_req(end_lat=45.85, end_lon=6.93)
+        result = run_pipeline(req)
+
+        assert result["status"] == "ok"
+        # pipeline raster a du tourner (pas de gpx_hybrid early return)
+        mock_get_dem.assert_called_once()
+
+    @patch("alpineroute.pipeline.route_via_gpx")
+    @patch("alpineroute.pipeline.valhalla_route")
+    @patch("alpineroute.pipeline.valhalla_available", return_value=True)
+    @patch("alpineroute.pipeline.is_detour_excessive")
+    @patch("alpineroute.pipeline.get_barrier_masks", return_value=None)
+    @patch("alpineroute.pipeline.get_trail_cost", return_value=None)
+    @patch("alpineroute.pipeline.get_glacier_mask", return_value=None)
+    @patch("alpineroute.pipeline.get_landcover_cost", return_value=None)
+    @patch("alpineroute.pipeline.get_dem")
+    @patch("alpineroute.pipeline.list_zones", return_value=[])
+    @patch("alpineroute.pipeline.compute_bbox")
+    @patch("alpineroute.pipeline.wgs84_to_pixel")
+    def test_gpx_full_no_approach_entry_far(self, mock_w2p, mock_bbox,
+                                             mock_zones, mock_get_dem,
+                                             mock_lc, mock_gl,
+                                             mock_trail, mock_barrier,
+                                             mock_detour, mock_vavail,
+                                             mock_vroute, mock_gpx,
+                                             mini_dem_path):
+        """GPX full, approach detour excessif, entry loin du depart -> partial."""
+        # main route detour, egress OK, approach detour excessif
+        mock_detour.side_effect = [True, False, True]
+        mock_vroute.side_effect = [
+            # main route -> detour (snap OK mais detour excessif)
+            {"coords": [(45.865, 6.865), (45.866, 6.866),
+                         (45.867, 6.867), (45.868, 6.868)],
+             "distance_km": 35.0, "duration_s": 18000,
+             "shape_encoded": "fake", "maneuvers": [],
+             "snap_start": (45.865, 6.865), "snap_end": (45.868, 6.868),
+             "snap_start_m": 10.0, "snap_end_m": 15.0},
+            # approach (long detour - sera rejete par is_detour_excessive)
+            {"coords": [(45.865, 6.865), (45.879, 6.887)],
+             "distance_km": 35.0, "duration_s": 18000,
+             "snap_start_m": 10.0, "snap_end_m": 15.0},
+            # egress (OK, court)
+            {"coords": [(45.868, 6.868), (45.868, 6.869)],
+             "distance_km": 0.1, "duration_s": 60,
+             "snap_start_m": 10.0, "snap_end_m": 15.0},
+        ]
+
+        # entry portal = Aiguille du Midi (~2km du depart Chamonix centre)
+        mock_gpx.return_value = {
+            "gpx_coords": [
+                (45.879, 6.887, 3800), (45.875, 6.890, 3500),
+                (45.868, 6.868, 3020),
+            ],
+            "entry_portal": {"node_id": 0, "gpx_coords": (45.879, 6.887),
+                             "osm_coords": (45.879, 6.887), "snap_m": 10},
+            "exit_portal": {"node_id": 2, "gpx_coords": (45.868, 6.868),
+                            "osm_coords": (45.868, 6.868), "snap_m": 10},
+            "coverage": "full",
+            "distance_km": 1.5, "dplus_m": 0, "dminus_m": 780,
+            "gpx_sources": ["test.gpx"],
+        }
+
+        mock_get_dem.return_value = mini_dem_path
+        mock_bbox.return_value = {"bbox_l93": _BBOX_L93, "bbox_wgs84": _BBOX_WGS84}
+        mock_w2p.side_effect = _fake_wgs84_to_pixel_start_end((5, 5), (45, 45))
+
+        from alpineroute.pipeline import run_pipeline
+        req = _fake_req()
+        result = run_pipeline(req)
+
+        assert result["status"] == "ok"
+        # entry portal (45.879) est a ~1.6km du depart (45.865) -> partial
+        # pipeline raster a tourne
+        mock_get_dem.assert_called_once()
+
     @patch("alpineroute.pipeline.route_via_gpx", return_value=None)
     @patch("alpineroute.pipeline.valhalla_available", return_value=False)
     @patch("alpineroute.pipeline.get_barrier_masks", return_value=None)

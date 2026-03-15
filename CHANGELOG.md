@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.1-beta.2]
+
+### Fixed
+- GPX full : rejet egress quand snap_end_m > 500m (route Valhalla n'atteint pas la dest)
+- GPX full : dégradation partial quand approach rejeté et entry portal loin du départ
+- GPX full/partial : vérification snap_start_m sur l'approach Valhalla
+- test coûts glaciers modifiés (flat 1.3->3.0, moderate 2.0->5.0, steep 4.0->10.0, very_steep 10.0->25.0)
+
+### Added
+- Logging diagnostique : coords exit_point dans find_network_exit + coords raster_start/end pour le routage hybride
+
 ## [2.0.0-beta.2]
 
 ### Added
