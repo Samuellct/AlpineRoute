@@ -127,7 +127,7 @@ class TestLoadSegmentsForBbox:
                 (gpx_path, segment_type, trail_cost,
                  start_lat, start_lon, end_lat, end_lon)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, ("far.gpx", "trail", 0.3, 44.0, 5.0, 44.01, 5.01))
+        """, ("far.gpx", "trail", 0.3, 47.0, 3.0, 47.01, 3.01))
         conn.commit()
         conn.close()
 

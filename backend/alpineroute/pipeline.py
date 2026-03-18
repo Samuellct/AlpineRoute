@@ -547,6 +547,17 @@ def run_pipeline(req, progress_callback=None):
     # -- 5. glacier (optionnel)
     _progress(progress_callback, "glacier", 0)
     glacier_mask = get_glacier_mask(bbox_l93, transform, dem.shape)
+    if glacier_mask is not None:
+        n_gl = int(glacier_mask.sum())
+        from alpineroute.config import (
+            GLACIER_COST_FLAT, GLACIER_COST_MODERATE,
+            GLACIER_COST_STEEP, GLACIER_COST_VERY_STEEP,
+        )
+        logger.info("glacier mask: %d px (%.1f%%), costs: flat=%.1f mod=%.1f "
+                     "steep=%.1f vsteep=%.1f",
+                     n_gl, 100 * n_gl / glacier_mask.size,
+                     GLACIER_COST_FLAT, GLACIER_COST_MODERATE,
+                     GLACIER_COST_STEEP, GLACIER_COST_VERY_STEEP)
     _progress(progress_callback, "glacier", 1.0)
 
     # -- 5b. OSM trails + barriers (toujours charge)

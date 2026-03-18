@@ -16,19 +16,19 @@ from alpineroute.utils import ValhallaError
 
 class TestDecodeValhallaShape:
     def test_known_point(self):
-        # Chamonix (45.9237, 6.8694) encode precision 6
-        encoded = "gv}qvAoxgbL"
+        # Chamonix (45.92366, 6.86864) encode precision 6
+        encoded = "ws}qvA_ifbL"
         pts = decode_valhalla_shape(encoded)
         assert len(pts) == 1
-        assert abs(pts[0][0] - 45.9237) < 0.0001
-        assert abs(pts[0][1] - 6.8694) < 0.0001
+        assert abs(pts[0][0] - 45.92366) < 0.0001
+        assert abs(pts[0][1] - 6.86864) < 0.0001
 
     def test_two_points(self):
         # Chamonix -> Montenvers
-        encoded = "gv}qvAoxgbL_zM_p}A"
+        encoded = "ws}qvA_ifbLq`Lkk`B"
         pts = decode_valhalla_shape(encoded)
         assert len(pts) == 2
-        assert abs(pts[1][0] - 45.9313) < 0.0001
+        assert abs(pts[1][0] - 45.930341) < 0.0001
 
     def test_empty_string(self):
         assert decode_valhalla_shape("") == []
@@ -68,7 +68,7 @@ class TestValhallaRoute:
             "trip": {
                 "summary": {"length": 4.2, "time": 3600},
                 "legs": [{
-                    "shape": "gv}qvAoxgbL_zM_p}A",
+                    "shape": "ws}qvA_ifbLq`Lkk`B",
                 }],
             }
         }
@@ -174,13 +174,13 @@ class TestValhallaIntegration:
 
     def test_chamonix_montenvers(self):
         # Chamonix centre -> Montenvers (train du Montenvers)
-        start = (45.9237, 6.8694)
-        end = (45.9313, 6.9178)
+        start = (45.92366, 6.86864)
+        end = (45.930341, 6.918502)
         result = valhalla_route(start, end)
         assert result is not None
         assert 3 <= result["distance_km"] <= 15
         assert len(result["coords"]) > 5
 
     def test_locate_chamonix(self):
-        result = valhalla_locate((45.9237, 6.8694))
+        result = valhalla_locate((45.92366, 6.86864))
         assert result is not None

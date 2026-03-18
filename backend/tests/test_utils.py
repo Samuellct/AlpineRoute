@@ -17,7 +17,7 @@ from alpineroute.utils import (
 class TestProjections:
     def test_roundtrip_chamonix(self):
         """WGS84 -> L93 -> WGS84 = identite (a ~1m pres)."""
-        lon, lat = 6.8694, 45.9237
+        lon, lat = 6.86864, 45.92366
         x, y = wgs84_to_l93(lon, lat)
         lon2, lat2 = l93_to_wgs84(x, y)
         assert abs(lon - lon2) < 1e-6
@@ -25,7 +25,7 @@ class TestProjections:
 
     def test_chamonix_in_l93_range(self):
         """Chamonix doit etre dans la zone L93 attendue."""
-        x, y = wgs84_to_l93(6.8694, 45.9237)
+        x, y = wgs84_to_l93(6.86864, 45.92366)
         # L93 Chamonix: x ~ 1001km, y ~ 6542km
         assert 990_000 < x < 1020_000
         assert 6530_000 < y < 6560_000
@@ -46,7 +46,7 @@ class TestWgs84ToPixel:
     def test_out_of_bounds(self, fake_transform):
         """Un point tres loin doit lever PointOutOfBoundsError."""
         with pytest.raises(PointOutOfBoundsError):
-            wgs84_to_pixel(48.0, 2.0, fake_transform, (20, 20))
+            wgs84_to_pixel(48.8566, 2.3522, fake_transform, (20, 20))
 
 
 # ---- pixel_to_l93 ----

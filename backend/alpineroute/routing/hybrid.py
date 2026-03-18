@@ -158,7 +158,8 @@ def find_network_exit(start, end, max_snap_m=None):
     Rejette l'approche si elle ne rapproche pas de la dest.
     Retourne dict {exit_point, approach, snap_m} ou None."""
     from alpineroute.routing.network import (
-        valhalla_locate, valhalla_route, parse_locate_snap, haversine_km as _hav,
+        valhalla_locate, valhalla_route, parse_locate_snap,
+        haversine_km as _hav, is_detour_excessive,
     )
     from alpineroute.config import SNAP_MAX_DISTANCE_M
 
@@ -186,6 +187,15 @@ def find_network_exit(start, end, max_snap_m=None):
 
     actual_exit = vr["coords"][-1] if vr["coords"] else snap_pt
     actual_snap_m = _hav(end[0], end[1], actual_exit[0], actual_exit[1]) * 1000
+
+    # verif: l'approche ne doit pas faire un detour excessif
+    # (ex: contourner le massif via tunnel Mont-Blanc pour rejoindre un snap)
+    if is_detour_excessive(vr["distance_km"], start, actual_exit):
+        log.info("find_network_exit: approach detour excessif (%.1fkm pour "
+                 "%.1fkm direct), skip",
+                 vr["distance_km"],
+                 _hav(start[0], start[1], actual_exit[0], actual_exit[1]))
+        return None
 
     # verif: l'approche doit rapprocher de la destination
     # sinon c'est un detour inutile (ex: start deja pres du reseau glaciaire,

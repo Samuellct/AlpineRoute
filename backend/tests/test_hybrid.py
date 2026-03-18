@@ -15,8 +15,8 @@ from alpineroute.routing.hybrid import (
 class TestHaversine:
     def test_chamonix_montenvers(self):
         """Chamonix centre -> Montenvers, env 3-4 km a vol d'oiseau."""
-        # Chamonix (45.924, 6.870) -> Montenvers (45.932, 6.917)
-        d = haversine_km(45.924, 6.870, 45.932, 6.917)
+        # Chamonix (45.92366, 6.86864) -> Montenvers (45.930341, 6.918502)
+        d = haversine_km(45.92366, 6.86864, 45.930341, 6.918502)
         assert 3.0 < d < 5.0
 
     def test_zero_distance(self):
@@ -344,6 +344,7 @@ class TestFindNetworkExit:
         actual_end = (45.923, 6.875)
         vr = dict(self._VR)
         vr["coords"] = [(45.92, 6.87), actual_end]
+        vr["distance_km"] = 0.6  # coherent avec ~0.5km direct
         mock_route.return_value = vr
 
         result = find_network_exit((45.92, 6.87), (45.926, 6.881))
