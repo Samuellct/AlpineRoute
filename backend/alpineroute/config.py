@@ -7,6 +7,8 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_DIR = os.environ.get("ALPINEROUTE_DATA_DIR", os.path.join(BASE_DIR, "data"))
 DEM_CACHE_DIR = os.path.join(DATA_DIR, "cache", "dem")
+COST_CACHE_DIR = os.path.join(DATA_DIR, "cache", "cost")
+COST_CACHE_MAX_AGE_DAYS = 90
 RGI_DIR = os.path.join(DATA_DIR, "rgi")
 DERIVED_DIR = os.path.join(DATA_DIR, "derived")
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")

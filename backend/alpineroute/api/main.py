@@ -18,7 +18,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, Response, FileResponse
 
-from alpineroute.config import DEM_CACHE_DIR, DB_PATH, CORS_ORIGINS, CRS_WGS84, NODATA_VALUE, GPX_DIR
+from alpineroute.config import DEM_CACHE_DIR, COST_CACHE_DIR, DB_PATH, CORS_ORIGINS, CRS_WGS84, NODATA_VALUE, GPX_DIR
 from alpineroute.api.models import RouteRequest, ZoneCreate, ZoneUpdate
 from alpineroute import pipeline as _pipeline
 from alpineroute.pipeline import run_pipeline
@@ -43,7 +43,13 @@ jobs: dict = {}
 
 @asynccontextmanager
 async def lifespan(app):
+    # config logging applicatif (uvicorn ne configure que ses propres loggers)
+    log_level = os.environ.get("ALPINEROUTE_LOG_LEVEL", "INFO").upper()
+    logging.basicConfig(level=getattr(logging, log_level, logging.INFO),
+                        format="%(levelname)s %(name)s: %(message)s")
+
     os.makedirs(DEM_CACHE_DIR, exist_ok=True)
+    os.makedirs(COST_CACHE_DIR, exist_ok=True)
     init_db()
     # sync traces GPX au demarrage
     try:
@@ -529,3 +535,24 @@ async def api_reload_index():
     except Exception as e:
         logger.exception("reload-index error")
         raise HTTPException(500, f"reload error: {e}")
+
+
+# --- Cache admin ---
+
+@app.post("/admin/invalidate-cache")
+async def api_invalidate_cache(bbox: Optional[dict] = None):
+    from alpineroute.cost.cache import invalidate_cache
+    bbox_l93 = None
+    if bbox:
+        bbox_l93 = {
+            "xmin": bbox.get("xmin", 0), "ymin": bbox.get("ymin", 0),
+            "xmax": bbox.get("xmax", 0), "ymax": bbox.get("ymax", 0),
+        }
+    n = invalidate_cache(bbox_l93)
+    return {"status": "ok", "invalidated": n}
+
+
+@app.get("/admin/cache-stats")
+async def api_cache_stats():
+    from alpineroute.cost.cache import cache_stats
+    return cache_stats()

@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.0.0-beta.3]
+
+### Added
+- Cache surface de coût : pre-calcul par zone/résolution, gain sur requêtes répétées
+- Endpoints api : POST /admin/invalidate-cache, GET /admin/cache-stats
+- Logging INFO dans Docker (logging.basicConfig dans lifespan + --log-level info uvicorn)
+- Labels SSE pour toutes les étapes (network, gpx_graph, cache, osm, zones)
+
+### Changed
+- Pipeline : tentative cache avant calcul terrain (skip dl lidar/terrain/worldcover/glacier si cache hit)
+- SSE : nouvelle étape "cache" dans la progression
+
 ## [2.0.3-beta.2]
 
 ### Changed

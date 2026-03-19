@@ -3,6 +3,7 @@ import os
 import tempfile
 import numpy as np
 import pytest
+from unittest.mock import patch
 from rasterio.transform import from_origin
 
 from alpineroute.db.schema import init_db
@@ -10,6 +11,15 @@ from alpineroute.db.schema import init_db
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "integration: needs external services")
+
+
+@pytest.fixture(autouse=True)
+def _no_cost_cache():
+    """Desactive le cache cost surface dans tous les tests pipeline.
+    Evite qu'un cache reel interfere avec les mocks."""
+    with patch("alpineroute.pipeline.get_cached_cost", return_value=None), \
+         patch("alpineroute.pipeline.save_cost_cache"):
+        yield
 
 
 # -- DEM synthetiques --

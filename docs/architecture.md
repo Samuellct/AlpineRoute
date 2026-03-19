@@ -9,13 +9,16 @@ AlpineRoute prend deux coordonnees GPS (depart, arrivee) et calcule l'itineraire
 ```mermaid
 flowchart LR
     A[Coords WGS84] --> B[Bbox L93]
-    B --> C[Download DEM]
+    B --> CC{Cache cost?}
+    CC -- hit --> F2[Rebuild cost]
+    CC -- miss --> C[Download DEM]
     C --> D[Mosaic + crop]
     D --> E[Terrain: pente, aspect, rugosite]
     E --> F[Surface de cout]
     G[Glaciers RGI] --> F
     H[WorldCover ESA] --> F
-    F --> I[Dijkstra skimage]
+    F --> F2
+    F2 --> I[Dijkstra skimage]
     I --> J[Export GPX / GeoJSON]
     J --> K[API / Frontend]
 ```
@@ -31,6 +34,7 @@ Le code backend est dans `backend/alpineroute/` :
 | `dem/download` | `dem/download.py` | Telechargement dalles IGN via WFS/WMS-R, fallback Copernicus GLO-30, mosaic avec rasterio. |
 | `dem/terrain` | `dem/terrain.py` | Pente et aspect (Horn's method via scipy.ndimage.convolve), rugosite TRI 3x3. |
 | `cost/surface` | `cost/surface.py` | Facteurs de cout individuels (Tobler, hypoxie, aspect, glacier, rugosite) et assemblage multiplicatif. |
+| `cost/cache` | `cost/cache.py` | Cache pre-calcul de la surface de cout (sans Tobler/trails). Cle = sha256(bbox+res+mois), stockage npz + JSON sidecar, TTL 90j. |
 | `cost/landcover` | `cost/landcover.py` | Integration WorldCover ESA : lecture /vsicurl/, reprojection L93, multiplicateurs par classe. |
 | `routing/pathfinding` | `routing/pathfinding.py` | Preparation de la grille (nodata -> inf) et lancement de `skimage.graph.route_through_array`. |
 | `routing/export` | `routing/export.py` | Export GPX (gpxpy) et GeoJSON 3D, simplification Douglas-Peucker. |

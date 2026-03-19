@@ -28,4 +28,5 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
 WORKDIR /app/backend
 
 CMD ["uvicorn", "alpineroute.api.main:app", \
-     "--host", "0.0.0.0", "--port", "8000"]
+     "--host", "0.0.0.0", "--port", "8000", \
+     "--log-level", "info"]

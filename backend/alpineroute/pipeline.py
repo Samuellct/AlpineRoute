@@ -22,10 +22,14 @@ from alpineroute.dem.download import get_dem
 from alpineroute.dem.terrain import compute_slope_aspect, compute_roughness
 from alpineroute.cost.landcover import get_landcover_cost
 from alpineroute.cost.glacier import get_glacier_mask
-from alpineroute.cost.surface import build_cost_surface, build_base_cost
+from alpineroute.cost.surface import (
+    build_cost_surface, build_base_cost,
+    compute_slope_cost, compute_altitude_cost,
+)
 from alpineroute.cost.trails import get_trail_cost
 from alpineroute.cost.barriers import get_barrier_masks
 from alpineroute.cost.zones import rasterize_user_zones
+from alpineroute.cost.cache import cost_cache_key, get_cached_cost, save_cost_cache
 from alpineroute.routing.pathfinding import (
     prepare_cost_grid, run_pathfinding, run_pathfinding_alternatives,
     dijkstra_anisotropic, run_aniso_alternatives,
@@ -58,7 +62,8 @@ _STEP_WEIGHTS = {
     "network": 5,
     "gpx_graph": 2,
     "bbox": 0,
-    "dem": 33,
+    "cache": 1,
+    "dem": 32,
     "terrain": 14,
     "worldcover": 5,
     "glacier": 5,
@@ -503,121 +508,216 @@ def run_pipeline(req, progress_callback=None):
             f"Resolution recommandee: {rec_res}m ou plus."
         )
 
-    # -- 2. DEM download/mosaic
-    _progress(progress_callback, "dem", 0)
-    dem_cb = _wrap_dem_progress(progress_callback)
-    dem_path = get_dem(bbox_l93, resolution=req.resolution,
-                       progress_callback=dem_cb, bbox_wgs84=bbox_wgs84)
-    _progress(progress_callback, "dem", 1.0)
+    # -- 1b. cache surface de cout
+    _progress(progress_callback, "cache", 0)
+    cache_key = cost_cache_key(bbox_l93, req.resolution, req.month)
+    cached = get_cached_cost(cache_key)
+    _progress(progress_callback, "cache", 1.0)
 
-    # charger le DEM en memoire
-    dem, profile, transform = load_dem(dem_path)
-    logger.info("DEM charge: %s (%.1f MP)", dem.shape,
-                dem.size / 1e6)
+    if cached is not None:
+        # -- CACHE HIT : skip DEM/terrain/worldcover/glacier
+        meta = cached["metadata"]
+        logger.info("cost cache hit: key=%s, shape=%s, res=%.0fm, month=%d",
+                    cache_key, meta.get("shape"), meta.get("resolution", 0),
+                    meta.get("month", 0))
 
-    # garde-fou post-load (au cas ou l'estim pre-vol etait optimiste)
-    if dem.size > MAX_GRID_PIXELS:
-        rec_res = math.ceil(math.sqrt(dem.size * req.resolution**2 / MAX_GRID_PIXELS))
-        raise ValueError(
-            f"grille trop grande: {dem.size/1e6:.0f}M px (max {MAX_GRID_PIXELS/1e6:.0f}M). "
-            f"Reduire la zone ou passer a {rec_res}m+."
-        )
+        # sauter les etapes DEM/terrain/worldcover/glacier dans la progression
+        for skip_step in ("dem", "terrain", "worldcover", "glacier"):
+            _progress(progress_callback, skip_step, 1.0)
 
-    if use_aniso and dem.size > MAX_GRID_PIXELS_ANISO:
-        rec_res = math.ceil(math.sqrt(dem.size * req.resolution**2 / MAX_GRID_PIXELS_ANISO))
-        raise ValueError(
-            f"grille trop grande pour le mode precis: {dem.size/1e6:.0f}M px "
-            f"(max {MAX_GRID_PIXELS_ANISO/1e6:.0f}M). "
-            f"Resolution recommandee: {rec_res}m ou plus."
-        )
+        dem = cached["dem"]
+        slope_deg = cached["slope_deg"]
+        glacier_mask = cached["glacier_mask"]
+        nodata_mask = cached["nodata_mask"]
+        transform = cached["transform"]
+        cached_base = cached["cached_base"]
 
-    # -- 3. terrain analysis
-    _progress(progress_callback, "terrain", 0)
-    slope, aspect = compute_slope_aspect(dem, req.resolution)
-    _progress(progress_callback, "terrain", 0.7)
-    roughness = compute_roughness(dem)
-    _progress(progress_callback, "terrain", 1.0)
+        # recalculer f_slope (Tobler) depuis slope_deg cache
+        f_slope = compute_slope_cost(slope_deg)
 
-    # -- 4. worldcover (optionnel)
-    _progress(progress_callback, "worldcover", 0)
-    landcover = get_landcover_cost(bbox_wgs84, bbox_l93, dem.shape,
-                                    dst_transform=transform)
-    _progress(progress_callback, "worldcover", 1.0)
+        # trails/barriers/segments toujours frais (changent plus souvent)
+        _progress(progress_callback, "osm", 0)
+        trail_cost = get_trail_cost(bbox_l93, transform, dem.shape, resolution=req.resolution)
+        _progress(progress_callback, "osm", 0.5)
+        barrier_masks = get_barrier_masks(bbox_l93, transform, dem.shape)
+        _progress(progress_callback, "osm", 0.8)
 
-    # -- 5. glacier (optionnel)
-    _progress(progress_callback, "glacier", 0)
-    glacier_mask = get_glacier_mask(bbox_l93, transform, dem.shape)
-    if glacier_mask is not None:
-        n_gl = int(glacier_mask.sum())
-        from alpineroute.config import (
-            GLACIER_COST_FLAT, GLACIER_COST_MODERATE,
-            GLACIER_COST_STEEP, GLACIER_COST_VERY_STEEP,
-        )
-        logger.info("glacier mask: %d px (%.1f%%), costs: flat=%.1f mod=%.1f "
-                     "steep=%.1f vsteep=%.1f",
-                     n_gl, 100 * n_gl / glacier_mask.size,
-                     GLACIER_COST_FLAT, GLACIER_COST_MODERATE,
-                     GLACIER_COST_STEEP, GLACIER_COST_VERY_STEEP)
-    _progress(progress_callback, "glacier", 1.0)
+        segments_loaded = False
+        try:
+            segments = load_segments_for_bbox(bbox_l93)
+            if segments:
+                seg_cost = rasterize_segments(segments, transform, dem.shape, resolution=req.resolution)
+                trail_cost = merge_trail_layers(trail_cost, seg_cost)
+                del seg_cost
+                segments_loaded = True
+        except Exception as e:
+            logger.warning("segments terrain echec (non bloquant): %s", e)
+        _progress(progress_callback, "osm", 1.0)
 
-    # -- 5b. OSM trails + barriers (toujours charge)
-    _progress(progress_callback, "osm", 0)
-    trail_cost = get_trail_cost(bbox_l93, transform, dem.shape, resolution=req.resolution)
-    if trail_cost is None:
-        logger.warning("ATTENTION: trail_cost=None, aucun sentier OSM ne sera utilise pour le pathfinding")
-    _progress(progress_callback, "osm", 0.5)
-    barrier_masks = get_barrier_masks(bbox_l93, transform, dem.shape)
-    _progress(progress_callback, "osm", 0.8)
+        # assembler la surface complete depuis le cache
+        _progress(progress_callback, "cost", 0)
+        if use_aniso:
+            base_cost = cached_base.copy()
+            if trail_cost is not None:
+                on_trail = trail_cost < 1.0
+                trail_base = compute_altitude_cost(dem) * trail_cost
+                base_cost = np.where(on_trail, trail_base, base_cost * trail_cost)
+            base_cost[nodata_mask] = np.inf
+            cost_for_display = f_slope * cached_base
+            if trail_cost is not None:
+                on_trail = trail_cost < 1.0
+                trail_only = f_slope * compute_altitude_cost(dem) * trail_cost
+                cost_for_display = np.where(on_trail, trail_only, cost_for_display * trail_cost)
+            cost_for_display[nodata_mask] = NODATA_VALUE
+        else:
+            cost_for_display = f_slope * cached_base
+            if trail_cost is not None:
+                on_trail = trail_cost < 1.0
+                trail_only = f_slope * compute_altitude_cost(dem) * trail_cost
+                cost_for_display = np.where(on_trail, trail_only, cost_for_display * trail_cost)
+            cost_for_display[nodata_mask] = NODATA_VALUE
+            base_cost = None
 
-    # -- 5c. segments terrain (traces GPX custom)
-    segments_loaded = False
-    try:
-        segments = load_segments_for_bbox(bbox_l93)
-        if segments:
-            seg_cost = rasterize_segments(segments, transform, dem.shape, resolution=req.resolution)
-            trail_cost = merge_trail_layers(trail_cost, seg_cost)
-            del seg_cost
-            segments_loaded = True
-            logger.info("segments terrain: %d segments merged", len(segments))
-    except Exception as e:
-        logger.warning("segments terrain echec (non bloquant): %s", e)
+        del cached_base, f_slope, slope_deg
+        _progress(progress_callback, "cost", 1.0)
 
-    _progress(progress_callback, "osm", 1.0)
-
-    _layers = []
-    if trail_cost is not None: _layers.append("trails")
-    if barrier_masks is not None: _layers.append("barriers")
-    if glacier_mask is not None: _layers.append("glacier")
-    logger.info("layers loaded: %s", _layers or "aucun")
-
-    # -- 6. cost surface
-    _progress(progress_callback, "cost", 0)
-
-    if use_aniso:
-        # mode anisotrope: base cost sans Tobler (calcule per-edge)
-        base_cost, nodata_mask = build_base_cost(
-            dem, slope, aspect, roughness, glacier_mask,
-            month=req.month, acclimatized=req.acclimatized,
-            landcover_cost=landcover, trail_cost=trail_cost,
-        )
-        # on garde aussi la cost surface complete pour le calque
-        cost_for_display, factors, _ = build_cost_surface(
-            dem, slope, aspect, roughness, glacier_mask,
-            month=req.month, acclimatized=req.acclimatized,
-            landcover_cost=landcover, trail_cost=trail_cost,
-        )
-        del factors
     else:
-        # mode isotrope: surface complete
-        cost_for_display, factors, nodata_mask = build_cost_surface(
-            dem, slope, aspect, roughness, glacier_mask,
-            month=req.month, acclimatized=req.acclimatized,
-            landcover_cost=landcover, trail_cost=trail_cost,
-        )
-        del factors
-        base_cost = None
+        # -- CACHE MISS : calcul depuis zero
+        logger.info("cost cache miss: key=%s, calcul complet", cache_key)
 
-    del slope, aspect, roughness, landcover
+        # -- 2. DEM download/mosaic
+        _progress(progress_callback, "dem", 0)
+        dem_cb = _wrap_dem_progress(progress_callback)
+        dem_path = get_dem(bbox_l93, resolution=req.resolution,
+                           progress_callback=dem_cb, bbox_wgs84=bbox_wgs84)
+        _progress(progress_callback, "dem", 1.0)
+
+        dem, profile, transform = load_dem(dem_path)
+        logger.info("DEM charge: %s (%.1f MP)", dem.shape, dem.size / 1e6)
+
+        if dem.size > MAX_GRID_PIXELS:
+            rec_res = math.ceil(math.sqrt(dem.size * req.resolution**2 / MAX_GRID_PIXELS))
+            raise ValueError(
+                f"grille trop grande: {dem.size/1e6:.0f}M px (max {MAX_GRID_PIXELS/1e6:.0f}M). "
+                f"Reduire la zone ou passer a {rec_res}m+."
+            )
+
+        if use_aniso and dem.size > MAX_GRID_PIXELS_ANISO:
+            rec_res = math.ceil(math.sqrt(dem.size * req.resolution**2 / MAX_GRID_PIXELS_ANISO))
+            raise ValueError(
+                f"grille trop grande pour le mode precis: {dem.size/1e6:.0f}M px "
+                f"(max {MAX_GRID_PIXELS_ANISO/1e6:.0f}M). "
+                f"Resolution recommandee: {rec_res}m ou plus."
+            )
+
+        # -- 3. terrain analysis
+        _progress(progress_callback, "terrain", 0)
+        slope, aspect = compute_slope_aspect(dem, req.resolution)
+        _progress(progress_callback, "terrain", 0.7)
+        roughness = compute_roughness(dem)
+        _progress(progress_callback, "terrain", 1.0)
+
+        # -- 4. worldcover
+        _progress(progress_callback, "worldcover", 0)
+        landcover = get_landcover_cost(bbox_wgs84, bbox_l93, dem.shape,
+                                        dst_transform=transform)
+        _progress(progress_callback, "worldcover", 1.0)
+
+        # -- 5. glacier
+        _progress(progress_callback, "glacier", 0)
+        glacier_mask = get_glacier_mask(bbox_l93, transform, dem.shape)
+        if glacier_mask is not None:
+            n_gl = int(glacier_mask.sum())
+            from alpineroute.config import (
+                GLACIER_COST_FLAT, GLACIER_COST_MODERATE,
+                GLACIER_COST_STEEP, GLACIER_COST_VERY_STEEP,
+            )
+            logger.info("glacier mask: %d px (%.1f%%), costs: flat=%.1f mod=%.1f "
+                         "steep=%.1f vsteep=%.1f",
+                         n_gl, 100 * n_gl / glacier_mask.size,
+                         GLACIER_COST_FLAT, GLACIER_COST_MODERATE,
+                         GLACIER_COST_STEEP, GLACIER_COST_VERY_STEEP)
+        _progress(progress_callback, "glacier", 1.0)
+
+        # -- 5b. OSM trails + barriers
+        _progress(progress_callback, "osm", 0)
+        trail_cost = get_trail_cost(bbox_l93, transform, dem.shape, resolution=req.resolution)
+        if trail_cost is None:
+            logger.warning("ATTENTION: trail_cost=None, aucun sentier OSM ne sera utilise pour le pathfinding")
+        _progress(progress_callback, "osm", 0.5)
+        barrier_masks = get_barrier_masks(bbox_l93, transform, dem.shape)
+        _progress(progress_callback, "osm", 0.8)
+
+        segments_loaded = False
+        try:
+            segments = load_segments_for_bbox(bbox_l93)
+            if segments:
+                seg_cost = rasterize_segments(segments, transform, dem.shape, resolution=req.resolution)
+                trail_cost = merge_trail_layers(trail_cost, seg_cost)
+                del seg_cost
+                segments_loaded = True
+                logger.info("segments terrain: %d segments merged", len(segments))
+        except Exception as e:
+            logger.warning("segments terrain echec (non bloquant): %s", e)
+
+        _progress(progress_callback, "osm", 1.0)
+
+        _layers = []
+        if trail_cost is not None: _layers.append("trails")
+        if barrier_masks is not None: _layers.append("barriers")
+        if glacier_mask is not None: _layers.append("glacier")
+        logger.info("layers loaded: %s", _layers or "aucun")
+
+        # -- 6. cost surface
+        _progress(progress_callback, "cost", 0)
+
+        # construire cached_base (sans Tobler, sans trails) pour le cache
+        nodata_mask = (slope == NODATA_VALUE) | np.isnan(slope)
+        slope_clean = np.where(nodata_mask, 0, slope)
+        aspect_clean = np.where(nodata_mask, 0, aspect)
+        rough_clean = np.where(nodata_mask, 0, roughness)
+        dem_clean = np.where(nodata_mask, 0, dem)
+
+        from alpineroute.cost.surface import (
+            compute_altitude_cost as _f_alt,
+            compute_aspect_cost as _f_aspect,
+            compute_glacier_cost as _f_glacier,
+            compute_roughness_cost as _f_rough,
+        )
+        _cached_base = (_f_alt(dem_clean, req.acclimatized)
+                        * _f_aspect(aspect_clean, slope_clean, dem_clean, req.month)
+                        * _f_glacier(glacier_mask, slope_clean)
+                        * _f_rough(rough_clean))
+        if landcover is not None:
+            _cached_base *= landcover
+
+        # sauvegarder le cache
+        save_cost_cache(cache_key, _cached_base, slope, dem, glacier_mask,
+                        nodata_mask, transform, bbox_l93, req.resolution, req.month)
+        del _cached_base
+
+        if use_aniso:
+            base_cost, nodata_mask = build_base_cost(
+                dem, slope, aspect, roughness, glacier_mask,
+                month=req.month, acclimatized=req.acclimatized,
+                landcover_cost=landcover, trail_cost=trail_cost,
+            )
+            cost_for_display, factors, _ = build_cost_surface(
+                dem, slope, aspect, roughness, glacier_mask,
+                month=req.month, acclimatized=req.acclimatized,
+                landcover_cost=landcover, trail_cost=trail_cost,
+            )
+            del factors
+        else:
+            cost_for_display, factors, nodata_mask = build_cost_surface(
+                dem, slope, aspect, roughness, glacier_mask,
+                month=req.month, acclimatized=req.acclimatized,
+                landcover_cost=landcover, trail_cost=trail_cost,
+            )
+            del factors
+            base_cost = None
+
+        del slope, aspect, roughness, landcover
 
     # -- appliquer barrieres OSM
     if barrier_masks is not None:

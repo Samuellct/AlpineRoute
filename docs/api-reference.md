@@ -128,7 +128,9 @@ curl -X POST http://localhost:8000/calculate-async \
 
 Stream SSE (Server-Sent Events) de la progression d'un calcul async.
 
-**Etapes** : `bbox` -> `MNT` -> `terrain` -> `worldcover` -> `glacier` -> `cost` -> `zones` -> `pathfinding` -> `result`
+**Etapes** : `network` -> `gpx_graph` -> `bbox` -> `cache` -> `dem` -> `terrain` -> `worldcover` -> `glacier` -> `osm` -> `cost` -> `zones` -> `pathfinding` -> `result`
+
+En cas de cache hit, les etapes `dem` a `glacier` sont sautees (progression rapide).
 
 **Format des evenements** :
 
@@ -395,6 +397,53 @@ Retourne la derniere surface de cout calculee sous forme d'image PNG.
 **Exemple** :
 ```bash
 curl -o cost.png http://localhost:8000/cost-surface
+```
+
+---
+
+### POST /admin/invalidate-cache
+
+Invalide le cache des surfaces de cout pre-calculees.
+
+**Body** (optionnel) :
+```json
+{
+  "xmin": 950000, "ymin": 6490000,
+  "xmax": 960000, "ymax": 6500000
+}
+```
+
+Si un body est fourni (bbox L93), seules les entrees dont la bbox intersecte sont supprimees. Sans body, tout le cache est vide.
+
+**Reponse** :
+```json
+{"status": "ok", "invalidated": 3}
+```
+
+**Exemple** :
+```bash
+curl -X POST http://localhost:8000/admin/invalidate-cache
+```
+
+---
+
+### GET /admin/cache-stats
+
+Statistiques du cache des surfaces de cout.
+
+**Reponse** :
+```json
+{
+  "entries": 5,
+  "total_size_mb": 234.7,
+  "age_min_days": 0.1,
+  "age_max_days": 12.3
+}
+```
+
+**Exemple** :
+```bash
+curl http://localhost:8000/admin/cache-stats
 ```
 
 ---
