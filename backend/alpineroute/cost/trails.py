@@ -13,7 +13,7 @@ from rasterio.features import rasterize
 from scipy.ndimage import binary_dilation
 
 from alpineroute.config import (
-    CRS_L93, OVERPASS_URL, OVERPASS_TIMEOUT,
+    CRS_L93, OVERPASS_URLS, OVERPASS_TIMEOUT,
     OSM_CACHE_DIR, OSM_CACHE_TTL_DAYS,
     TRAIL_COST_MULTIPLIERS, TRAIL_BUFFER_M,
     TRAIL_PROXIMITY_BUFFER_M, TRAIL_PROXIMITY_PENALTY,
@@ -89,14 +89,17 @@ out geom;"""
     logger.info("overpass trails query %.4f,%.4f -> %.4f,%.4f", lat_min, lon_min, lat_max, lon_max)
     last_err = None
     for attempt in range(MAX_RETRIES):
+        # rotation endpoint: chaque tentative sur un serveur different
+        url = OVERPASS_URLS[attempt % len(OVERPASS_URLS)]
         try:
-            resp = httpx.post(OVERPASS_URL, data={"data": query}, timeout=OVERPASS_TIMEOUT + 10)
+            resp = httpx.post(url, data={"data": query}, timeout=OVERPASS_TIMEOUT + 10)
             resp.raise_for_status()
             break
         except Exception as e:
             last_err = e
             if attempt < MAX_RETRIES - 1:
-                logger.warning("overpass trails tentative %d/%d echec: %s", attempt + 1, MAX_RETRIES, e)
+                logger.warning("overpass trails tentative %d/%d echec (%s): %s",
+                               attempt + 1, MAX_RETRIES, url.split("//")[1].split("/")[0], e)
                 time.sleep(RETRY_DELAY * (attempt + 1))
     else:
         raise last_err

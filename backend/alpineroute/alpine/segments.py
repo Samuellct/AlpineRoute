@@ -68,8 +68,8 @@ def rasterize_segments(segments, transform, shape, resolution=1.0):
             continue
 
         line = LineString(coords_l93)
-        # buffer 2m autour de la trace
-        geom = line.buffer(2.0)
+        # buffer 4m autour de la trace (avant 2m, trop etroit a 1m de resolution)
+        geom = line.buffer(4.0)
         if geom.is_empty:
             continue
 

@@ -12,10 +12,11 @@ from shapely.geometry import LineString
 from rasterio.features import rasterize
 
 from alpineroute.config import (
-    CRS_L93, OVERPASS_URL, OVERPASS_TIMEOUT,
+    CRS_L93, OVERPASS_URLS, OVERPASS_TIMEOUT,
     OSM_CACHE_DIR, OSM_CACHE_TTL_DAYS,
     RIVER_BUFFER_M, CANAL_BUFFER_M, STREAM_BUFFER_M,
     BRIDGE_BUFFER_M, MOTORWAY_BUFFER_M,
+    MAX_RETRIES, RETRY_DELAY,
 )
 from alpineroute.utils import l93_to_wgs84
 
@@ -84,8 +85,21 @@ def download_barriers(bbox_l93):
 out geom;"""
 
     logger.info("overpass barriers query %s", bbox_str)
-    resp = httpx.post(OVERPASS_URL, data={"data": query}, timeout=OVERPASS_TIMEOUT + 10)
-    resp.raise_for_status()
+    last_err = None
+    for attempt in range(MAX_RETRIES):
+        url = OVERPASS_URLS[attempt % len(OVERPASS_URLS)]
+        try:
+            resp = httpx.post(url, data={"data": query}, timeout=OVERPASS_TIMEOUT + 10)
+            resp.raise_for_status()
+            break
+        except Exception as e:
+            last_err = e
+            if attempt < MAX_RETRIES - 1:
+                logger.warning("overpass barriers tentative %d/%d echec (%s): %s",
+                               attempt + 1, MAX_RETRIES, url.split("//")[1].split("/")[0], e)
+                time.sleep(RETRY_DELAY * (attempt + 1))
+    else:
+        raise last_err
 
     tag_keys = ["waterway", "highway", "bridge", "ford"]
     gdf = _parse_overpass_ways(resp.json(), tag_keys)

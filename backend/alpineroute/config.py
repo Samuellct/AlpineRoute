@@ -105,8 +105,13 @@ WORLDCOVER_MULTIPLIERS = {
 WORLDCOVER_URL_PATTERN = "https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/map/ESA_WorldCover_10m_2021_v200_{tile}_Map.tif"
 
 # ---- OSM / sentiers & barrieres ----
-OVERPASS_URL = "https://overpass-api.de/api/interpreter"
-OVERPASS_TIMEOUT = 180
+OVERPASS_URLS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://lz4.overpass-api.de/api/interpreter",
+    "https://z.overpass-api.de/api/interpreter",
+]
+OVERPASS_URL = OVERPASS_URLS[0]  # compat retro
+OVERPASS_TIMEOUT = 300           # avant 180, augmente pour gros bbox
 OSM_CACHE_DIR = os.path.join(DATA_DIR, "cache", "osm")
 OSM_CACHE_TTL_DAYS = 30
 
@@ -125,13 +130,13 @@ TRAIL_COST_MULTIPLIERS = {
 
 TRAIL_BUFFER_M = {
     "road": 3.0,
-    "trail": 1.5,
-    "alpine": 3.0,          # avant 0.5 mais invisible a 1m de resolution
+    "trail": 3.0,            # avant 1.5, trop etroit a 1m (3px -> decrochages)
+    "alpine": 5.0,           # avant 3.0, elargir pour garder le pathfinder colle
 }
 
 # penalite proximite sentier: px proches d'un sentier mais hors sentier
 TRAIL_PROXIMITY_BUFFER_M = 8.0
-TRAIL_PROXIMITY_PENALTY = 2.5
+TRAIL_PROXIMITY_PENALTY = 5.0       # avant 2.5, renforce pour empecher les decrochages
 
 RIVER_BUFFER_M = 5.0
 CANAL_BUFFER_M = 3.0

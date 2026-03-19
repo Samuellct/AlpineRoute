@@ -155,10 +155,15 @@ def build_cost_surface(dem, slope, aspect, roughness, glacier_mask,
         logger.info("f_landcover (WorldCover)")
         cost *= landcover_cost
 
-    # trails OSM si dispo
+    # trails OSM / segments: decouplage terrain
+    # sur un sentier connu, seuls pente + altitude comptent
+    # (glacier, rugosite, aspect, landcover ne s'appliquent pas)
     if trail_cost is not None:
-        logger.info("f_trail (OSM)")
-        cost *= trail_cost
+        on_trail = trail_cost < 1.0
+        n_trail = int(np.sum(on_trail))
+        logger.info("f_trail (OSM) decouple: %d trail px", n_trail)
+        trail_only = f_slope * f_alt * trail_cost
+        cost = np.where(on_trail, trail_only, cost * trail_cost)
 
     cost[nodata_mask] = NODATA_VALUE
 
@@ -200,8 +205,11 @@ def build_base_cost(dem, slope, aspect, roughness, glacier_mask,
     if landcover_cost is not None:
         base *= landcover_cost
 
+    # meme decouplage que build_cost_surface: sur sentier, altitude seule
     if trail_cost is not None:
-        base *= trail_cost
+        on_trail = trail_cost < 1.0
+        trail_base = f_alt * trail_cost
+        base = np.where(on_trail, trail_base, base * trail_cost)
 
     base[nodata_mask] = np.inf
 

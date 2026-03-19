@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.3-beta.2]
+
+### Changed
+- Surface de cout : trail_cost découplé des facteurs terrain, glacier, rugosité, aspect, landcover ne s'appliquent plus sur les sentiers osm ou gpx. Le ratio sentier/hors-sentier est augmenté de *3 à *9.
+- Buffers trail élargis : OSM trail 1.5->3.0m, alpine 3.0->5.0m, segments GPX 2.0->4.0m
+- Pénalité de proximité sentier renforcée : 2.5x -> 5.0x
+
+### Fixed
+- Overpass API avec 3 endpoints en rotation (overpass-api.de, lz4, z) + timeout 300s.
+- Sentiers OSM non suivis en ville et sur glacier (décrochages persistants depuis la 2.0-a)
+
 ## [2.0.2-beta.2]
 
 ### Fixed
