@@ -12,7 +12,7 @@
 - Pipeline : tentative cache avant calcul terrain (skip dl lidar/terrain/worldcover/glacier si cache hit)
 - SSE : nouvelle étape "cache" dans la progression
 
-## [2.0.3-beta.2]
+## [2.0.0-beta.2.3]
 
 ### Changed
 - Surface de cout : trail_cost découplé des facteurs terrain, glacier, rugosité, aspect, landcover ne s'appliquent plus sur les sentiers osm ou gpx. Le ratio sentier/hors-sentier est augmenté de *3 à *9.
@@ -23,7 +23,7 @@
 - Overpass API avec 3 endpoints en rotation (overpass-api.de, lz4, z) + timeout 300s.
 - Sentiers OSM non suivis en ville et sur glacier (décrochages persistants depuis la 2.0-a)
 
-## [2.0.2-beta.2]
+## [2.0.0-beta.2.2]
 
 ### Fixed
 - CAS B : rejet approche Valhalla si detour excessif dans find_network_exit (corrige route via Mont-Blanc)
@@ -31,7 +31,7 @@
 ### Added
 - Logging glacier mask : couverture + valeurs cout config pour diagnostic
 
-## [2.0.1-beta.2]
+## [2.0.0-beta.2.1]
 
 ### Fixed
 - GPX full : rejet egress quand snap_end_m > 500m (route Valhalla n'atteint pas la dest)
