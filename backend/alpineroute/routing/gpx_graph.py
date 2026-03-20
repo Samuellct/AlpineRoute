@@ -374,15 +374,74 @@ def route_via_gpx(start_wgs84, end_wgs84):
                 "remaining_m": far_dist,
             }
 
-    if best_partial is not None:
+    # --- essai 3: reverse partial (portail pres de la dest, GPX vers le depart) ---
+    best_reverse = None
+    best_rev_usefulness = 0
+
+    for portal in corridor:
+        pid = portal["node_id"]
+        component = nx.node_connected_component(_gpx_graph, pid)
+        if len(component) < 2:
+            continue
+
+        # noeud le plus proche du depart dans cette composante
+        near_nid, near_dist = _closest_gpx_node_to(start_wgs84, component, _node_coords)
+        if near_nid is None or near_nid == pid:
+            continue
+
+        portal_to_start = _haversine_m(
+            portal["gpx_coords"][0], portal["gpx_coords"][1],
+            start_wgs84[0], start_wgs84[1])
+        if near_dist >= portal_to_start:
+            continue  # le GPX ne rapproche pas du depart
+
+        path = nx.shortest_path(_gpx_graph, near_nid, pid, weight="weight")
+        gpx_dist = sum(
+            _haversine_m(_node_coords[path[i]][0], _node_coords[path[i]][1],
+                         _node_coords[path[i+1]][0], _node_coords[path[i+1]][1])
+            for i in range(len(path) - 1)
+        )
+        advance_m = portal_to_start - near_dist
+        usefulness = advance_m / max(route_dist_m, 1)
+
+        if usefulness > best_rev_usefulness and gpx_dist > 200 and usefulness > 0.05:
+            best_rev_usefulness = usefulness
+            best_reverse = {
+                "portal": portal,
+                "near_nid": near_nid,
+                "path": path,
+                "gpx_dist": gpx_dist,
+                "usefulness": usefulness,
+                "remaining_m": near_dist,
+            }
+
+    # choisir le meilleur entre forward et reverse
+    if best_partial is not None and (best_reverse is None
+                                     or best_usefulness >= best_rev_usefulness):
+        # forward partial (portail cote depart)
         p = best_partial
         result = _build_gpx_result(
             p["path"], p["portal"], None, "partial")
-        # ajouter les infos pour l'assemblage partiel
         far_coords = _node_coords[p["far_nid"]]
         result["gpx_exit_wgs84"] = (far_coords[0], far_coords[1])
         result["remaining_m"] = round(p["remaining_m"])
-        logger.info("route_via_gpx: PARTIAL coverage, %.2fkm GPX, "
+        result["direction"] = "forward"
+        logger.info("route_via_gpx: PARTIAL forward, %.2fkm GPX, "
+                    "%.0fm restant, utilite=%.0f%%, via %s",
+                    result["distance_km"], p["remaining_m"],
+                    p["usefulness"] * 100, result["gpx_sources"])
+        return result
+
+    if best_reverse is not None:
+        # reverse partial (portail cote destination)
+        p = best_reverse
+        result = _build_gpx_result(
+            p["path"], None, p["portal"], "partial")
+        entry_coords = _node_coords[p["near_nid"]]
+        result["gpx_entry_wgs84"] = (entry_coords[0], entry_coords[1])
+        result["remaining_m"] = round(p["remaining_m"])
+        result["direction"] = "reverse"
+        logger.info("route_via_gpx: PARTIAL reverse, %.2fkm GPX, "
                     "%.0fm restant, utilite=%.0f%%, via %s",
                     result["distance_km"], p["remaining_m"],
                     p["usefulness"] * 100, result["gpx_sources"])

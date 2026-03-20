@@ -20,7 +20,7 @@ GPX_INDEX_PATH = os.path.join(GPX_DIR, "index.json")
 # graphe GPX overlay (Phase 11)
 GPX_SUBSAMPLE_M = 50          # sous-echantillonnage traces longues
 GPX_MERGE_TOLERANCE_M = 30    # fusion noeuds proches inter-traces
-GPX_PORTAL_SNAP_M = 200       # max dist snap pour portal Valhalla (montagne = GPS imprecis)
+GPX_PORTAL_SNAP_M = 350       # max dist snap pour portal Valhalla
 GPX_CORRIDOR_RATIO = 0.35     # largeur corridor = 35% de la dist start-end
 GPX_CORRIDOR_MIN_M = 2000     # corridor minimum 2km
 GPX_ROUTE_TRAIL_COST = 0.30   # trail_cost fixe pour les traces "route"

@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.0.1]
+
+Correctifs logique moteur de routage : re-entree Valhalla apres les gaps OSM.
+
+### Fixed
+- GPX partial : egress Valhalla depuis la sortie GPX quand le reseau OSM reprend de l'autre cote du gap (ex: traversee glaciaire Mer de Glace). Permet Valhalla + GPX + Valhalla sans passer par le raster.
+- GPX partial bidirectionnel : detection des portails cote destination (reverse), pas seulement cote depart. Couvre les cas ou la trace GPX s'etend vers le depart depuis un portail proche de la destination.
+- Detection portails GPX : snap augmente de 200m a 350m pour mieux couvrir les zones de montagne ou le reseau OSM est epars.
+
+### Added
+- Fonction `_try_valhalla_egress()` dans le pipeline : centralise la validation egress (detour, snap) pour eviter la duplication entre forward et reverse partial.
+- Assemblage reverse partial dans le pipeline : raster approach + GPX + Valhalla egress quand l'approach Valhalla echoue en mode reverse.
+
 ## [2.0.0]
 
 Rework complet : passage de 100% raster a un routage adaptatif Valhalla + graphe GPX + raster.
