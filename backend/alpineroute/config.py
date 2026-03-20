@@ -9,7 +9,7 @@ DATA_DIR = os.environ.get("ALPINEROUTE_DATA_DIR", os.path.join(BASE_DIR, "data")
 DEM_CACHE_DIR = os.path.join(DATA_DIR, "cache", "dem")
 COST_CACHE_DIR = os.path.join(DATA_DIR, "cache", "cost")
 COST_CACHE_MAX_AGE_DAYS = 90
-COST_CACHE_VERSION = "2.0.2"
+COST_CACHE_VERSION = "2.0.3"
 RGI_DIR = os.path.join(DATA_DIR, "rgi")
 DERIVED_DIR = os.path.join(DATA_DIR, "derived")
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -18,8 +18,8 @@ GPX_DIR = os.path.join(DATA_DIR, "gpx")
 GPX_INDEX_PATH = os.path.join(GPX_DIR, "index.json")
 
 # graphe GPX overlay (Phase 11)
-GPX_SUBSAMPLE_M = 50          # sous-echantillonnage traces longues
-GPX_MERGE_TOLERANCE_M = 30    # fusion noeuds proches inter-traces
+GPX_SUBSAMPLE_M = 10          # sous-echantillonnage (avant 50, coupait les virages)
+GPX_MERGE_TOLERANCE_M = 12    # fusion noeuds proches inter-traces (avant 30, ecrasait les lacets)
 GPX_PORTAL_SNAP_M = 350       # max dist snap pour portal Valhalla
 GPX_CORRIDOR_RATIO = 0.50     # largeur corridor = 50% de la dist start-end
 GPX_CORRIDOR_MIN_M = 4000     # corridor minimum 4km
@@ -158,8 +158,8 @@ TRAIL_PROXIMITY_BUFFER_M = 8.0
 TRAIL_PROXIMITY_PENALTY = 5.0       # avant 2.5, renforce pour empecher les decrochages
 
 # graphe local OSM (fallback quand Valhalla ne couvre pas la zone)
-TRAIL_GRAPH_SUBSAMPLE_M = 20        # sous-echantillonnage geometries OSM
-TRAIL_GRAPH_MERGE_M = 15            # fusion noeuds proches inter-segments
+TRAIL_GRAPH_SUBSAMPLE_M = 8         # sous-echantillonnage (dense pour garder les lacets)
+TRAIL_GRAPH_MERGE_M = 5             # fusion noeuds (conservateur pour eviter les raccourcis)
 TRAIL_GRAPH_MAX_SNAP_M = 300        # snap max start/end sur le graphe
 
 RIVER_BUFFER_M = 5.0

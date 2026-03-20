@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.0.3]
+
+### Changed
+- GPX_SUBSAMPLE_M : 50 -> 10. Les traces GPX sont suivies avec une précision de 10m au lieu de 50m. Sensé résoudre les les virages coupés.
+- GPX_MERGE_TOLERANCE_M : 30 -> 12. Évite de fusionner des noeuds GPX sur des niveaux de lacets différents.
+- TRAIL_GRAPH_SUBSAMPLE_M : 20 -> 8. graphe local OSM est plus dense, meilleur suivi des chemins.
+- TRAIL_GRAPH_MERGE_M : 15 -> 5. Fusion conservatrice pour ne pas créer de raccourcis à travers les lacets.
+- Cache surface de coût : version bumped 2.0.3.
+
+### Fixed
+- Trail graph : micro-deviations sur les sentiers à lacets (ex : approche Charpoua). La réduction du pas de sous-échantillonnage et de la tolérance de fusion élimine les raccourcis entre niveaux de lacets.
+
 ## [2.0.2]
 
 Correctif routage graphe local OSM pour les zones hors couverture Valhalla.
