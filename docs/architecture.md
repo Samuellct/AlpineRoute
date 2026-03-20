@@ -2,26 +2,41 @@
 
 ## Vue d'ensemble
 
-AlpineRoute prend deux coordonnees GPS (depart, arrivee) et calcule l'itineraire optimal hors-sentier en montagne. Le principe : le DEM raster est utilise directement comme graphe implicite (grille 8-connectee), chaque pixel porte un cout de traversee calcule a partir de la topographie, des glaciers et de la couverture du sol. Dijkstra trouve le chemin de cout minimal, qui est ensuite exporte en GPX/GeoJSON.
+AlpineRoute prend 2 coordonnées GPS (départ, arrivée) et calcule l'itinéraire optimal en montagne. Le routage est adaptatif : si un réseau routier/sentier existe (via Valhalla), il est utilisé pour les portions sur sentier. Les sections hors-piste sont calculées sur une grille lidar MNT implicite (8-connectée) où le coût de chaque pixel dépend de la topographie, des glaciers et de la couverture du sol.
+
+## Stratégies de routage
+
+Le pipeline détecte automatiquement la meilleure stratégie :
+
+- **Reseau** : départ et arrivée proches du réseau OSM. Valhalla gère tout, pas de calcul raster.
+- **Hybride** : approche par le réseau OSM (Valhalla), puis section hors-piste sur grille lidar. Peut aussi passer par le graphe GPX (traces alpinisme indexées) si des portails existent dans le corridor.
+- **Raster** : pathfinding complet sur grille lidar MNT. Fallback quand Valhalla est indisponible ou que les points sont loin du réseau.
 
 ## Pipeline
 
 ```mermaid
 flowchart LR
-    A[Coords WGS84] --> B[Bbox L93]
-    B --> CC{Cache cost?}
-    CC -- hit --> F2[Rebuild cost]
-    CC -- miss --> C[Download DEM]
+    A[Coords WGS84] --> N{Valhalla?}
+    N -- ok --> V[Route reseau]
+    N -- hybride --> G[GPX graph]
+    G --> R[Raster hors-piste]
+    N -- miss --> B[Bbox L93]
+    B --> CC{Cache cout?}
+    CC -- hit --> F2[Load cache]
+    CC -- miss --> C[Download lidar MNT]
     C --> D[Mosaic + crop]
-    D --> E[Terrain: pente, aspect, rugosite]
+    D --> E[Terrain: pente, rugosite]
     E --> F[Surface de cout]
-    E --> R[Radiation solaire]
-    R --> F
-    G[Glaciers RGI] --> F
-    H[WorldCover ESA] --> F
+    E --> RAD[Radiation solaire]
+    RAD --> F
+    GL[Glaciers RGI] --> F
+    WC[WorldCover ESA] --> F
+    OSM[Sentiers + barrieres OSM] --> F
     F --> F2
     F2 --> I[Dijkstra skimage]
+    R --> I
     I --> J[Export GPX / GeoJSON]
+    V --> J
     J --> K[API / Frontend]
 ```
 
@@ -32,38 +47,50 @@ Le code backend est dans `backend/alpineroute/` :
 | Module | Fichier(s) | Role |
 |--------|-----------|------|
 | `config` | `config.py` | Constantes et parametres du pipeline. Aucune constante magique dans les autres modules. |
-| `utils` | `utils.py` | I/O raster (load/save), reprojection, calcul de stats de trajet, exceptions custom. |
-| `dem/download` | `dem/download.py` | Telechargement dalles IGN via WFS/WMS-R, fallback Copernicus GLO-30, mosaic avec rasterio. |
-| `dem/terrain` | `dem/terrain.py` | Pente et aspect (Horn's method via scipy.ndimage.convolve), rugosite TRI 3x3. |
-| `cost/surface` | `cost/surface.py` | Facteurs de cout individuels (Tobler, hypoxie, aspect, glacier, rugosite) et assemblage multiplicatif. |
-| `cost/cache` | `cost/cache.py` | Cache pre-calcul de la surface de cout (sans Tobler/trails). Cle = sha256(bbox+res+mois), stockage npz + JSON sidecar, TTL 90j. |
-| `cost/radiation` | `cost/radiation.py` | Radiation solaire physique : position NOAA, horizons, ombres portees, irradiance directe, cache. |
-| `cost/landcover` | `cost/landcover.py` | Integration WorldCover ESA : lecture /vsicurl/, reprojection L93, multiplicateurs par classe. |
-| `routing/pathfinding` | `routing/pathfinding.py` | Preparation de la grille (nodata -> inf) et lancement de `skimage.graph.route_through_array`. |
+| `utils` | `utils.py` | I/O raster, reprojection, stats de trajet, exceptions custom. |
+| `pipeline` | `pipeline.py` | Orchestration du calcul : selection strategie, enchainement etapes, progression SSE. |
+| `dem/download` | `dem/download.py` | Telechargement dalles IGN via WFS/WMS-R, fallback Copernicus GLO-30, mosaic rasterio. |
+| `dem/terrain` | `dem/terrain.py` | Pente et aspect (Horn's method via scipy), rugosite TRI 3x3. |
+| `cost/surface` | `cost/surface.py` | Facteurs de cout individuels (Tobler, hypoxie, radiation, glacier, rugosite, hillslope) et assemblage multiplicatif. |
+| `cost/cache` | `cost/cache.py` | Cache surface de cout. Cle = sha256(bbox+res+mois), stockage npz + JSON sidecar, TTL 90j. |
+| `cost/radiation` | `cost/radiation.py` | Radiation solaire : position NOAA, horizons vectorises, ombres portees, irradiance directe. |
+| `cost/landcover` | `cost/landcover.py` | WorldCover ESA : lecture /vsicurl/, reprojection L93, multiplicateurs par classe. |
+| `cost/trails` | `cost/trails.py` | Sentiers OSM : dl Overpass, classification 12 niveaux, rasterisation sur grille lidar. |
+| `cost/barriers` | `cost/barriers.py` | Barrieres OSM : rivieres/autoroutes infranchissables, detection ponts. |
+| `routing/pathfinding` | `routing/pathfinding.py` | Preparation grille et `skimage.graph.route_through_array`. |
+| `routing/network` | `routing/network.py` | Client Valhalla : route, locate, status. |
+| `routing/hybrid` | `routing/hybrid.py` | Assemblage route hybride : segments Valhalla + raster. |
+| `routing/gpx_graph` | `routing/gpx_graph.py` | Graphe topologique des traces GPX, portails vers le reseau OSM. |
 | `routing/export` | `routing/export.py` | Export GPX (gpxpy) et GeoJSON 3D, simplification Douglas-Peucker. |
-| `api/main` | `api/main.py` | App FastAPI : endpoints /health, /calculate, /calculate-async, /progress/{job_id} (SSE), /glaciers, /cost-surface. |
-| `api/models` | `api/models.py` | Schemas Pydantic (RouteRequest, HealthResponse). |
-| `db/schema` | `db/schema.py` | Schema SQLite : tables routes, user_zones, dem_cache, preferences. |
-| `db/crud` | `db/crud.py` | Operations CRUD : sauvegarde de routes, gestion cache DEM. |
+| `alpine/index` | `alpine/index.py` | Indexation traces GPX depuis index.json, sync SQLite. |
+| `alpine/routes` | `alpine/routes.py` | Parsing GPX, conversion GeoJSON, cotations. |
+| `api/main` | `api/main.py` | App FastAPI : endpoints calcul, routes, zones, admin, glaciers. |
+| `api/models` | `api/models.py` | Schemas Pydantic (RouteRequest, ZoneCreate, etc.). |
+| `db/schema` | `db/schema.py` | Schema SQLite : tables routes, zones, alpine_routes, terrain_segments. |
+| `db/crud` | `db/crud.py` | Operations CRUD routes et zones. |
 
 ## Choix techniques
 
 ### Grille implicite, pas de graphe explicite
 
-Le DEM est directement utilise comme grille de cout 8-connectee. Un DEM de 5000x5000 pixels contient 25 millions de noeuds. Construire un graphe explicite (NetworkX) prendrait des dizaines de Go de RAM et des heures. `skimage.graph.route_through_array` utilise un Dijkstra en Cython qui opere directement sur le tableau NumPy.
+Le lidar MNT est directement utilisé comme grille de coût 8-connectée. Un MNT de 5000x5000 pixels contient 25 millions de noeuds. Construire un graphe explicite (NetworkX) prendrait des dizaines de Go de RAM. `skimage.graph.route_through_array` utilise un Dijkstra en Cython qui opère directement sur le tableau NumPy.
 
 ### scipy.ndimage pour le terrain
 
-Les calculs de pente (Horn's method) et de rugosite (TRI) utilisent `scipy.ndimage.convolve`. Pas besoin de richdem ou GDAL Python pour ca : les kernels sont simples, la precision est equivalente, et ca evite une dependance supplementaire.
+Les calculs de pente (Horn's méthode) et de rugosité (TRI) utilisent `scipy.ndimage.convolve`.
+
+### Valhalla pour le réseau
+
+Valhalla tourne dans un conteneur Docker avec le PBF Alps (arc alpin complet). Le backend communique via HTTP. Si Valhalla est down, le pipeline bascule automatiquement en raster pur.
 
 ### SQLite
 
-Suffisant pour un usage mono-utilisateur. Pas besoin de PostgreSQL + PostGIS pour la V1. Le schema stocke les routes calculees, les zones utilisateur et le cache DEM.
+Le schéma stocke les routes calculées, les zones utilisateur, les traces d'alpinisme et le cache lidar.
 
 ### FastAPI + SSE
 
-Le calcul de route peut prendre 10-30 secondes sur des grandes zones. Le endpoint `/calculate-async` lance le calcul dans un thread et renvoie un `job_id`. Le client suit la progression via SSE sur `/progress/{job_id}`. SSE plutot que WebSocket : plus simple, passe mieux les proxies, unidirectionnel suffit ici.
+Le calcul peut prendre 10-30 secondes. Le endpoint `/calculate-async` lance le calcul dans un thread et renvoie un `job_id`. Le client suit la progression via SSE sur `/progress/{job_id}`. SSE plutôt que WebSocket : plus simple, passe mieux les proxies, unidirectionnel suffit.
 
 ### Lambert-93 comme CRS de travail
 
-Toutes les operations raster se font en EPSG:2154 (Lambert-93). C'est le CRS natif des donnees IGN, il est metrique (pas besoin de convertir les distances), et ca evite les distorsions de surface aux latitudes alpines. La conversion WGS84 se fait uniquement en entree/sortie.
+Toutes les opérations raster se font en EPSG:2154 (Lambert-93). C'est le CRS natif des données IGN, il est métrique, et ça évite les distorsions aux latitudes alpines. La conversion WGS84 se fait uniquement en entrée/sortie.

@@ -10,3 +10,4 @@ Documentation du projet AlpineRoute.
 - [Sources de donnees](data-sources.md) - IGN, RGI, WorldCover, licences
 - [Guide utilisateur](user-guide.md) - utilisation de l'application, parametres, limites
 - [Reference API](api-reference.md) - endpoints, formats, exemples
+- [Traces GPX](gpx-traces.md) - indexation traces alpinisme, format, cotations

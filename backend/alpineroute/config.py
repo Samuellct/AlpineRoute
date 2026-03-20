@@ -9,7 +9,7 @@ DATA_DIR = os.environ.get("ALPINEROUTE_DATA_DIR", os.path.join(BASE_DIR, "data")
 DEM_CACHE_DIR = os.path.join(DATA_DIR, "cache", "dem")
 COST_CACHE_DIR = os.path.join(DATA_DIR, "cache", "cost")
 COST_CACHE_MAX_AGE_DAYS = 90
-COST_CACHE_VERSION = "2.0.0-rc.1"
+COST_CACHE_VERSION = "2.0.0"
 RGI_DIR = os.path.join(DATA_DIR, "rgi")
 DERIVED_DIR = os.path.join(DATA_DIR, "derived")
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -61,7 +61,7 @@ GRADIENT_CLIP = 10.0  # |gradient| max avant Tobler
 STEEP_ONSET_DEG = 35          # deg debut penalite
 STEEP_FULL_DEG = 55           # deg de penalite maximale
 STEEP_MAX_MULTIPLIER = 20.0
-SERAC_SLOPE_DEG = 35          # seuil seracs a midifier
+SERAC_SLOPE_DEG = 35          # seuil seracs a modifier
 
 # ---- cost function : altitude ----
 HYPOXIA_ALTITUDE_THRESHOLD = 1500

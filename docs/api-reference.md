@@ -79,6 +79,9 @@ Calcul de route synchrone. Bloquant, renvoie le resultat directement.
       "resolution_m": 1.0
     }
   },
+  "strategy": "hybrid",
+  "valhalla_available": true,
+  "layers_used": ["dem", "worldcover", "glacier", "osm", "radiation"],
   "computation_time_s": 120.3,
   "saved_route_id": 42,
   "routes": [...],
@@ -448,6 +451,67 @@ curl http://localhost:8000/admin/cache-stats
 
 ---
 
+### GET /alpine-routes
+
+Liste les traces alpinisme indexées.
+
+**Query params** :
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `massif` | string | Filtre par massif |
+| `summit` | string | Filtre par sommet |
+
+**Reponse** :
+```json
+{
+  "routes": [
+    {
+      "id": 1,
+      "name": "Aiguille du Midi - Arête des Cosmiques",
+      "summit": "Aiguille du Midi",
+      "massif": "Mont-Blanc",
+      "grade": "AD",
+      "gpx_path": "mont-blanc/cosmiques.gpx"
+    }
+  ],
+  "count": 1
+}
+```
+
+---
+
+### GET /alpine-routes/geojson
+
+Même filtres que `/alpine-routes`, retourne un FeatureCollection GeoJSON avec les traces en LineString.
+
+---
+
+### GET /terrain-segments/geojson
+
+Retourne les segments terrain (traces GPX rasterisees) en GeoJSON.
+
+**Query params** :
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `segment_type` | string | Filtre par type de segment |
+
+**Reponse** : FeatureCollection GeoJSON.
+
+---
+
+### POST /admin/reload-index
+
+Recharge l'index des traces GPX depuis `data/gpx/index.json` et synchronise la base SQLite.
+
+**Reponse** :
+```json
+{"status": "ok", "added": 3, "removed": 0, "segments": 12}
+```
+
+---
+
 ## Modèles
 
 ### RouteRequest
@@ -464,6 +528,7 @@ curl http://localhost:8000/admin/cache-stats
 | `n_alternatives` | int | 0 | Nombre de routes alternatives (0-5) |
 | `save` | bool | true | Sauvegarder automatiquement la route en DB |
 | `name` | string | null | Nom optionnel pour la route |
+| `anisotropic` | bool | false | Pathfinding anisotrope (cout directionnel pente) |
 
 ### ZoneCreate
 

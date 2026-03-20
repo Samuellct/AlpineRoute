@@ -1,4 +1,4 @@
-# API FastAPI -- v0.4 pipeline + CRUD routes/zones + GPX
+# API FastAPI -- v2.0 pipeline adaptatif + CRUD routes/zones + GPX
 # plus de chargement au startup, chaque requete lance le pipeline complet
 
 import os
@@ -57,14 +57,14 @@ async def lifespan(app):
         logger.info("alpine index: %s", result)
     except Exception as e:
         logger.warning("alpine index load: %s", e)
-    logger.info("AlpineRoute API v0.4 ready")
+    logger.info("AlpineRoute API v2.0 ready")
     yield
     jobs.clear()
 
 
 app = FastAPI(
     title="AlpineRoute Optimizer",
-    version="0.4",
+    version="2.0",
     lifespan=lifespan,
 )
 

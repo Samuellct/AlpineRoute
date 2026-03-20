@@ -1,190 +1,48 @@
 # Changelog
 
-## [2.0.0-rc.1]
+## [2.0.0]
+
+Rework complet : passage de 100% raster a un routage adaptatif Valhalla + graphe GPX + raster.
 
 ### Added
+- Routage hybride : Valhalla (graphe OSM) + raster hors-piste, détection automatique de la stratégie
+- Graphe GPX overlay : traces alpinisme indexées formant un réseau topologique connecté au réseau OSM
+- Routage multi-graphe : Valhalla approche + GPX milieu + Valhalla sortie, dégradation partielle si un seul portail
+- Sentiers OSM intégrés dans la surface de coût (trail_cost multiplicatif, ratio ~9x sentier/hors-piste)
+- Barrières OSM : rivières/autoroutes infranchissables, ruisseaux pénalisés, détection ponts
+- Segments terrain : rasterisation GPX custom + merge sentiers OSM
+- Radiation solaire : modèle physique avec ombres portées (horizons + irradiance directe), remplace f_aspect
 - Hill slope : pénalité progressive pour les pentes latérales (devers > 25 deg)
-- Radiation solaire : remplace le f_aspect par un modèle physique avec ombres portées (horizons + irradiance directe)
-- Cache radiation : angles d'horizon permanents, radiation mensuelle cachée par zone
-- Fallback automatique sur aspect si la radiation échoue
-
-### Changed
-- Surface de coût : nouveau facteur f_hillslope dans le produit multiplicatif
-- Surface de coût : f_radiation remplace f_aspect quand disponible
-- SSE : étape "radiation" dans la progression frontend
-- Cache coût : version bumpée (rc.1), anciens caches beta.3 invalides automatiquement
-
-## [2.0.0-beta.3]
-
-### Added
-- Cache surface de coût : pre-calcul par zone/résolution, gain sur requêtes répétées
-- Endpoints api : POST /admin/invalidate-cache, GET /admin/cache-stats
-- Logging INFO dans Docker (logging.basicConfig dans lifespan + --log-level info uvicorn)
-- Labels SSE pour toutes les étapes (network, gpx_graph, cache, osm, zones)
-
-### Changed
-- Pipeline : tentative cache avant calcul terrain (skip dl lidar/terrain/worldcover/glacier si cache hit)
-- SSE : nouvelle étape "cache" dans la progression
-
-## [2.0.0-beta.2.3]
-
-### Changed
-- Surface de cout : trail_cost découplé des facteurs terrain, glacier, rugosité, aspect, landcover ne s'appliquent plus sur les sentiers osm ou gpx. Le ratio sentier/hors-sentier est augmenté de *3 à *9.
-- Buffers trail élargis : OSM trail 1.5->3.0m, alpine 3.0->5.0m, segments GPX 2.0->4.0m
-- Pénalité de proximité sentier renforcée : 2.5x -> 5.0x
-
-### Fixed
-- Overpass API avec 3 endpoints en rotation (overpass-api.de, lz4, z) + timeout 300s.
-- Sentiers OSM non suivis en ville et sur glacier (décrochages persistants depuis la 2.0-a)
-
-## [2.0.0-beta.2.2]
-
-### Fixed
-- CAS B : rejet approche Valhalla si detour excessif dans find_network_exit (corrige route via Mont-Blanc)
-
-### Added
-- Logging glacier mask : couverture + valeurs cout config pour diagnostic
-
-## [2.0.0-beta.2.1]
-
-### Fixed
-- GPX full : rejet egress quand snap_end_m > 500m (route Valhalla n'atteint pas la dest)
-- GPX full : dégradation partial quand approach rejeté et entry portal loin du départ
-- GPX full/partial : vérification snap_start_m sur l'approach Valhalla
-- couts glaciers modifiés (flat 1.3->3.0, moderate 2.0->5.0, steep 4.0->10.0, very_steep 10.0->25.0)
-
-### Added
-- Logging diagnostique : coords exit_point dans find_network_exit + coords raster_start/end pour le routage hybride
-
-## [2.0.0-beta.2]
-
-### Added
-- Graphe GPX overlay : traces indexées forment un réseau topologique
-- Portails GPX-OSM : connexion automatique du graphe GPX au réseau osm
-- Routage multi-graphe : Valhalla approche + GPX milieu + Valhalla sortie
-- Sous-échantillonnage et fusion des noeuds GPX proches
-- Recherche par corridor : portails cherchés le long de la ligne start-end (pas juste près des extrémités)
-- Couverture partielle : Valhalla approche + GPX + raster terminal quand un seul portail OSM existe
-- Logging détaillé du graphe GPX (portails, corridor, coverage) dans les logs backend
-
-### Changed
-- Pipeline : tentative GPX graph avant fallback raster
-- SSE : nouvelle etape "gpx_graph" dans la progression
-- reload-index reconstruit aussi le graphe GPX
-- GPX_PORTAL_SNAP_M : 50 à 200m
-- Recherche corridor (ratio 35%, min 2km) remplace la recherche par rayon fixe
-
-## [2.0.0-beta]
-
-### Added
 - Recherche textuelle Nominatim pour départ/arrivée
-- Affichage stratégie de routage (Reseau/Hybride/Raster) avec badge coloré
-- Affichage des couches de donnée utilisées
-- warning si Valhalla indisponible
-- Calque traces alpinisme (couleur par cotation, tooltip hover)
-- Calque segments terrain (pointille jaune, tooltip hover)
-- Hook useNominatim avec debounce 500ms
-- Appels API fetchAlpineRoutesGeoJSON, fetchSegmentsGeoJSON
-
-### Changed
-- Champs départ/arrivée : champ texte recherche Nominatim + coordonnées au clic carte
-- Types TS : strategy, coverage, snap, layers_used, valhalla_available dans RouteResult
-- OverlayId élargi : alpine-routes, segments
-
-## [2.0.0-alpha.7]
-
-### Changed
-- PBF Valhalla : rhone-alpes -> alps-latest (arc alpin complet)
-- VALID_LAT/LON_RANGE élargi (41-50 / -2-18) pour accepter les autres massifs français
-- Healthcheck Docker Valhalla : start_period 300s -> 800s
-
-### Added
-- Garde couverture PBF : skip Valhalla si points hors bbox Alps
-- Ghost route : rejet boucles (first==last <10m) et routes <3 points
-- Champs réponse API : coverage, snap_start_m, snap_end_m, warnings
-- Documentation procédure maj PBF (docs/data-sources.md)
-
-### Fixed
-- Warnings pas toujours inclus dans la réponse API (network path)
-
-## [2.0.0-alpha.6]
-
-### Fixed
-- Vérification distance snap Valhalla (rejet routes fantome + arrêts prématurés)
-- mode hybride : approche Valhalla + raster terminal (sensé suivre les sentiers OSM avec trail cost)
-- assemble_route() intègre les stats Valhalla (distance, temps)
-- exit_point utilise coords[-1] de la route Valhalla
-- KeyError 'approach' quand find_network_entry entrait dans le bloc continuation
-- Lignes droites à travers les montagnes (assemble_bridged_route supprimé)
-- Overpass timeout 504 sur grandes bboxes (timeout 60 > 180s)
-- Buffer trails alpins invisibles a 1m de résolution (0.5->3.0m)
-- Multiplicateurs T4/T5/T6 trop faibles (T4:0.55->0.30, T5:0.70->0.35, T6:0.85->0.45)
-
-### Added
-- find_network_exit/entry pour le routage hybride
-- parse_locate_snap pour exploiter /locate Valhalla
-- Config: SNAP_MAX_DISTANCE_M, GHOST_ROUTE_MIN_DISTANCE_KM, HYBRID_BBOX_MARGIN_M
-- Retry Overpass avec delai progressif (3 tentatives)
-- Warning explicite quand trail_cost=None (aucun sentier OSM charge)
-
-## [2.0.0-alpha.5]
-
-### Added
-- Segments terrain : rasterisation GPX custom + merge avec sentiers OSM
-- Ponts raster : detection detours Valhalla + pathfinding local
-
-### Changed
-- Schema terrain_segments : ajout colonnes start/end lat/lon
-
-## [2.0.0-alpha.4]
-
-### Added
+- Cache surface de coût : pré-calcul par zone/résolution/mois
+- Cache radiation : angles d'horizon permanents, radiation mensuelle par zone
 - Indexation traces GPX (index.json + sync SQLite)
-- Module alpine/routes.py : parsing GPX, conversion GeoJSON, cotations
-- Tables alpine_routes + terrain_segments
-- Endpoints /alpine-routes, /alpine-routes/summits, /alpine-routes/{id}, /alpine-routes/{id}/gpx, /admin/reload-index
-- POST /admin/reload-index
-
-## [2.0.0-alpha.3]
-
-### Added
-- modif complète du pipeline, passe à un mode unique adaptatif : tentative Valhalla automatique avant raster
-- Détection de détours excessif avec ratio vol d'oiseau
-- Champs `strategy`, `valhalla_available`, `layers_used` dans la reponse API
+- Endpoints : /alpine-routes, /alpine-routes/summits, /terrain-segments/geojson, /admin/reload-index
+- Endpoints admin : /admin/invalidate-cache, /admin/cache-stats
+- Calque traces alpinisme (couleur par cotation) et segments terrain
+- Affichage stratégie de routage (Reseau/Hybride/Raster) avec badge
+- Docker Valhalla (PBF Alps, arc alpin complet FR/IT/CH/AT/SI/DE)
+- Champs réponse API : strategy, valhalla_available, layers_used, coverage, snap, warnings
 
 ### Changed
-- Redistribution poids SSE (étape "network" ajoutée)
+- Pipeline adaptatif : tentative Valhalla puis GPX graph puis fallback raster
+- Surface de cout : trail_cost découplé des facteurs terrain (sentiers non pénalisés par glacier/rugosité)
+- Couts glacier augmentés (flat 3.0, moderate 5.0, steep 10.0, very_steep 25.0)
+- Multiplicateurs cotation alpinisme ajustés (T4:0.30, T5:0.35, T6:0.45)
+- Champs départ/arrivée : recherche Nominatim + coords au clic carte
+- SSE : étapes network, gpx_graph, cache, osm, radiation dans la progression
+- PBF Valhalla : rhone-alpes -> alps-latest
+- Buffers trail élargis (OSM 3.0m, alpine 5.0m, segments GPX 4.0m)
+
+### Fixed
+- Snap Valhalla : rejet routes fantome, boucles, arrêts prématurés
+- Détection détours excessifs routage réseau
+- Overpass API : 3 endpoints en rotation + timeout 300s + retry progressif
+- Fallback aspect si radiation échoue (KeyError bbox corrigé)
 
 ### Removed
-- routing_mode dans RouteRequest
-
-## [2.0.0-alpha.2]
-
-Rework complet du moteur de calcul. Passage de 100% raster à graphes (Valhalla) + raster.
-
-### Added
-- Docker Valhalla pour fraph reseau OSM
-- Client Python Valhalla : route, locate, status (routing/network.py)
-- Config VALHALLA_BASE_URL configurable par env var
-- Tests unitaires + integration network
-
-### Changed
-- docker-compose : ajout service valhalla + depends_on backend
-
-## [2.0.0-alpha]
-
-### Added
-- Parametre `routing_mode` dans l'API (1=hors-piste pur, 2=OSM+hors-piste)
-- ajout sentiers OSM dans le pipeline : trail_cost multiplié dans la surface de cout
-- ajout barrieres OSM : rivières/autoroutes bloquées
-- Etape SSE "osm" dans la progression du calcul
-
-### Changed
-- routing_mode=2 par defaut (OSM active)
-- Redistribution des poids SSE pour inclure l'etape OSM
-- Multiplicateurs trail fortement reduits (road 0.55->0.18, paved 0.50->0.15, etc.) pour un ratio sentier/hors-piste de 5-7x
-- Penalite de proximite (x2.5) autour des sentiers
-- Buffers trail elargis (road 2->3m, trail 1->1.5m)
+- routing_mode dans RouteRequest (remplacé par détection automatique)
+- assemble_bridged_route (lignes droites à travers les montagnes)
 
 ## [1.3.0]
 

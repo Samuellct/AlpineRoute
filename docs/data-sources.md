@@ -18,7 +18,7 @@ Le pipeline telecharge automatiquement les dalles qui intersectent la bbox de la
 
 ## Copernicus GLO-30
 
-DEM global utilise comme fallback quand les donnees IGN ne sont pas disponibles (zones hors France).
+MNT global utilisé comme fallback quand les data IGN ne sont pas disponibles (zones hors France).
 
 - **Produit** : Copernicus DEM GLO-30
 - **Resolution** : ~30 m (1 arc-sec)
@@ -42,7 +42,7 @@ Contours des glaciers pour le masque glacier dans la surface de cout.
 - **Licence** : CC-BY 4.0
 - **Reference** : RGI 7.0 Consortium (2023). *Randolph Glacier Inventory - A Dataset of Global Glacier Outlines, Version 7.0.* NSIDC.
 
-Les contours sont rasterises sur la grille DEM (meme resolution, meme emprise) pour produire un masque glacier/non-glacier.
+Les contours sont rasterisés sur la grille lidar MNT (même résolution, même emprise) pour produire un masque glacier/non-glacier.
 
 ### Telechargement manuel des shapefiles RGI
 
@@ -116,3 +116,21 @@ Réseau routier et sentiers utilisé par Valhalla pour le routage sur le réseau
 5. `docker compose down && docker compose up -d` (delete l'ancien volume avec l'ancien fichier pbf)
 6. Attendre le rebuild des tiles (~10-20 min pour Alps, ~5 min pour Rhone-Alpes)
 7. Remettre `force_rebuild=False` après le build
+
+## Nominatim (geocoding)
+
+Recherche de lieux par nom dans les champs départ/arrivée du frontend.
+
+- **Service** : API Nominatim publique (OpenStreetMap)
+- **Usage** : recherche textuelle avec debounce 500ms cote frontend
+- **Licence** : ODbL (OpenStreetMap)
+
+## Traces GPX alpinisme
+
+Traces de courses d'alpinisme indexées localement pour le graph overlay et l'affichage sur la carte.
+
+- **Format** : fichiers GPX dans `data/gpx/`, indexés par `index.json`
+- **Contenu** : routes completès et segments terrain avec cotation
+- **Source** : traces personnelles
+
+Voir [gpx-traces.md](gpx-traces.md) pour le format et l'ajout de traces.

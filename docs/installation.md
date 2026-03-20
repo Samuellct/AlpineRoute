@@ -14,11 +14,13 @@ cd AlpineRoute
 docker compose up --build
 ```
 
-Ca lance le backend (port 8000) et le frontend (port 3000).
+Ca lance le backend (port 8000), le frontend (port 3000) et Valhalla (port 8002).
 
 - Frontend : http://localhost:3000
 - API docs : http://localhost:8000/docs
 - Health check : http://localhost:8000/health
+
+**Valhalla** : le conteneur Valhalla télécharge le PBF Alps et build les tiles au premier lancement (env 5-10 min). Les lignes sont persistantes dans un volume Docker. Sans Valhalla, le pipeline fonctionne en mode raster pur.
 
 Les donnees lidar et la base SQLite sont stockées dans un volume Docker `alpineroute-data`. Elles persistent entre les arrêts/relances des containers.
 
@@ -91,10 +93,14 @@ Structure du dossier data apres un premier calcul :
 ```
 data/
 ├── cache/
-│   └── dem/          # tuiles DEM IGN (.tif)
-├── derived/          # grilles calculees (pente, rugosite...)
-├── rgi/              # contours glaciaires (telecharges auto)
-└── alpineroute.db    # base SQLite (routes sauvegardees, zones)
+│   ├── dem/          # tuiles lidar MNT IGN (.tif)
+│   ├── cost/         # surfaces de coût pré-calculées (.npz)
+│   ├── radiation/    # angles d'horizon + radiation mensuelle
+│   └── osm/          # sentiers/barrières OSM (.gpkg)
+├── derived/          # grilles calculées (pente, rugosite...)
+├── gpx/              # traces alpinisme (index.json + fichiers GPX)
+├── rgi/              # contours glaciaires
+└── alpineroute.db    # base SQLite
 ```
 
 ---
@@ -105,11 +111,13 @@ Optionnelles, valeurs par défaut adaptées au dev local.
 
 | Variable | Defaut | Description |
 |----------|--------|-------------|
-| `ALPINEROUTE_DATA_DIR` | `<repo>/data` | Dossier data (DEM cache, SQLite) |
+| `ALPINEROUTE_DATA_DIR` | `<repo>/data` | Dossier data (cache lidar, SQLite) |
 | `ALPINEROUTE_DB_PATH` | `<data>/alpineroute.db` | Chemin base SQLite |
 | `ALPINEROUTE_HOST` | `127.0.0.1` | Adresse d'écoute du backend |
 | `ALPINEROUTE_PORT` | `8000` | Port du backend |
 | `ALPINEROUTE_CORS_ORIGINS` | `*` | Origins CORS (séparés par des virgules) |
+| `ALPINEROUTE_VALHALLA_URL` | `http://localhost:8002` | URL du service Valhalla |
+| `ALPINEROUTE_LOG_LEVEL` | `INFO` | Niveau de log backend (DEBUG, INFO, WARNING) |
 
 ---
 
@@ -124,6 +132,6 @@ conda env remove -n alpineroute
 
 **Port 8000 deja utilise** : soit un autre process tourne dessus, soit le backend a crash sans se fermer proprement. `lsof -i :8000` (Linux) ou `netstat -ano | findstr 8000` (Windows) pour trouver le PID.
 
-**Timeout au telechargement DEM** : l'API IGN peut etre lente ou down temporairement. Relancer le calcul, le cache reprendra la ou il en etait. Si ca persiste, verifier la connexion ou tester avec une bbox plus petite.
+**Timeout au téléchargement lidar** : l'API IGN peut être lente ou down temporairement. Relancer le calcul, le cache reprendra là où il en était. Si ça persiste, vérifier la connexion ou tester avec une bbox plus petite.
 
 **Docker build lent** : le premier build telecharge les images Docker + pip install toutes les deps geospatiales (~700 MB). Les builds suivants utilisent le cache Docker et sont quasi-instantanes tant que requirements.txt ne change pas.

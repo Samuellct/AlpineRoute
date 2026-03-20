@@ -4,9 +4,11 @@
 
 Le coût de traversée d'un pixel est le produit de plusieurs facteurs :
 
-$$C = f_{pente} \times f_{altitude} \times f_{radiation} \times f_{glacier} \times f_{rugosité} \times f_{devers}$$
+$$C = f_{pente} \times f_{altitude} \times f_{radiation} \times f_{glacier} \times f_{rugosité} \times f_{devers} \times f_{landcover}$$
 
 Chaque facteur est un multiplicateur >= 1.0 (sauf pente qui est normalisée à 1.0 pr les terrain plat). Le cout final est multiplie par la distance euclidienne entre pixels voisins lors du pathfinding.
+
+Les sentiers OSM et les barrières sont appliqués en post-traitement sur la surface de coût (pas dans le produit ci-dessus). Voir sections dédiées plus bas.
 
 Source : `backend/alpineroute/cost/surface.py`
 
@@ -61,12 +63,12 @@ $$f_{altitude} = \frac{1}{capacite}$$
 
 ## Facteur radiation solaire
 
-Remplace l'ancien facteur aspect/saison (cosinus simple) par un modele physique avec ombres portees. Quand le calcul de radiation echoue (DEM trop petit, etc.), l'ancien modele cosinus est utilise en fallback.
+Remplace l'ancien facteur aspect/saison par un modèle physique avec ombres portées. Quand le calcul de radiation échoue (grille trop petite, etc.), l'ancien modèle est utilisé en fallback.
 
 ### Principe
 
 1. **Position solaire** (algo NOAA simplifie) : calcule l'elevation et l'azimut du soleil toutes les 30 min sur une journee representative (le 15 du mois).
-2. **Angles d'horizon** : pour chaque pixel, balayage radial vectorise dans 36 directions. On mesure l'angle d'elevation maximum vers les reliefs environnants (portee ~5 km). Calcule sur un DEM sous-echantillonne a 5 m pour les performances.
+2. **Angles d'horizon** : Pour chaque pixel, balayage radial vectorisé dans 36 directions. On mesure l'angle d'élévation maximum vers les reliefs environnants (portée ~5 km). Calcule sur un lidar MNT sous-échantillonné à 5 m pour les performances.
 3. **Ombres portees** : un pixel est a l'ombre si l'elevation du soleil est inferieure a l'angle d'horizon dans la direction du soleil (interpolation entre les 2 azimuths encadrants).
 4. **Irradiance directe** : loi du cosinus de l'angle d'incidence sur surface inclinee, mise a zero si a l'ombre.
 5. **Integration journaliere** : cumul de l'irradiance sur la journee (pas de 30 min, 4h-22h UTC).
@@ -166,6 +168,35 @@ Multiplicateur additionnel basé sur les classes ESA WorldCover 10 m.
 
 Source : `backend/alpineroute/config.py` (`WORLDCOVER_MULTIPLIERS`)
 
+## Sentiers OSM
+
+Les sentiers OSM sont rasterisés sur la grille lidar et appliqués en post-traitement sur la surface de coût. Le coût du pixel est remplacé (pas multiplié) par le multiplicateur sentier, ce qui découple les sentiers des facteurs terrain (un sentier sur glacier n'est pas pénalisé par le coût glacier).
+
+| Type | Multiplicateur | Buffer |
+|------|---------------|--------|
+| paved | 0.15 | 3.0 m |
+| road | 0.18 | 3.0 m |
+| gravel | 0.20 | 3.0 m |
+| trail T1/T2 | 0.25 | 3.0 m |
+| trail default | 0.30 | 3.0 m |
+| trail T3 | 0.40 | 3.0 m |
+| trail T4 | 0.30 | 5.0 m (alpin) |
+| trail T5 | 0.35 | 5.0 m |
+| trail T6 | 0.45 | 5.0 m |
+
+Les pixels proches d'un sentier (8 m) mais hors buffer reçoivent une pénalité de proximité (x5) pour forcer le Pathfinder à rester sur le sentier plutôt que de couper à côté.
+
+Source : `backend/alpineroute/config.py` (`TRAIL_COST_MULTIPLIERS`)
+
+## Barrières OSM
+
+Les barrières sont des zones infranchissables ou pénalisées, téléchargées via Overpass.
+
+- **Rivières** : buffer 5 m, cout infranchissable (1e6). Les ponts detectes dans OSM creent des ouvertures.
+- **Ruisseaux** : buffer 2 m, penalite x6
+- **Autoroutes/voies ferrees** : infranchissables.
+
+
 ## Paramètres configurables
 
 Tous les paramètres sont centralisés dans `backend/alpineroute/config.py` :
@@ -197,7 +228,5 @@ Tous les paramètres sont centralisés dans `backend/alpineroute/config.py` :
 
 ## Limites
 
-Plusieurs points a améliorer pour les V1.1 et V2.0:
-
-- **Pas de détection de crevasses** : le masque RGI donne les contours glaciaires mais pas la structure interne. Prévu de tester une approche Deep Learning pour la V2.0 (https://doi.org/10.1016/j.jag.2025.104495).
-- **Radiation simplifiée** : le modele calcule l'irradiance directe mais pas la diffuse (ciel couvert, reflexions). Suffisant pour discriminer faces exposees/ombrees en haute montagne.
+- **Pas de détection de crevasses** : le masque RGI donne les contours glaciaires mais pas la structure interne.
+- **Radiation simplifiee** : le modèle calcule l'irradiance directe mais pas la diffuse (ciel couvert, réflexions). Suffisant pour discriminer faces exposées/ombres en haute montagne.

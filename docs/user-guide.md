@@ -1,23 +1,24 @@
 # Guide utilisateur
 
-Guide pratique pour utiliser AlpineRoute.
+Guide pour utiliser AlpineRoute.
 
 ## Calcul d'un itinéraire
 
 1. Ouvrir l'application dans le navigateur (`http://localhost:5173` en dev local, ou `http://localhost:3000` via Docker).
-2. Cliquer sur la carte pour placer le **point de depart** (marqueur vert). Un second clic place le **point d'arrivée** (marqueur rouge). Les marqueurs sont déplacables par drag.
+2. Placer le départ et l'arrivée : cliquer sur la carte (marqueur vert = départ, rouge = arrivée, ou taper un nom de lieu dans les champs texte (recherche Nominatim)).
 3. Dans le panneau latéral (onglet "Calcul"), ajuster les paramètres si besoin (voir section *Paramètres*).
-4. Cliquer sur **Calculer**. Une barre de progression affiche l'avancement du pipeline (Téléchargement Lidar, analyse terrain, calcul de cout, pathfinding...).
-5. Le calcul prend en moyenne entre 30s et 3min selon la taille de la zone et la résolution choisie. Le premier calcul sur une zone est plus lent car il faut télécharger les dalles lidar depuis l'api IGN.
+4. Cliquer sur **Calculer**. Une barre de progression affiche l'avancement du pipeline (Téléchargement Lidar, analyse terrain, calcul de coût, pathfinding...).
+5. Le calcul prend en moyenne entre 10s et 3min selon la taille de la zone et la résolution choisie. Le premier calcul sur une zone est plus lent car il faut télécharger les dalles lidar depuis l'API IGN.
 
 ## Résultats
 
 Une fois le calcul terminé :
 
-- La **route optimale** s'affiche sur la carte.
+- La route optimale s'affiche sur la carte.
 - Si des routes alternatives ont été demandées, elles s'affichent en gris. Cliquer sur une route alternative pour la sélectionner.
-- Le panneau latéral affiche les **stats** : distance, denivelé positif/negatif, temps estimé (modèle Tobler simplifié), pourcentage de glacier, cout total, temps de calcul.
-- Le **profil altimétrique** apparait en bas de la carte. Survoler le profil pour voir la position correspondante sur la carte.
+- Un **badge stratégie** indique le mode de routage utilisé : Réseau (vert, tout Valhalla), Hybride (bleu, Valhalla + raster), Raster (orange, pathfinding complet sur grille lidar).
+- Le panneau latéral affiche les **stats** : distance, dénivelé positif/négatif, temps estimé, pourcentage de glacier, coût total, temps de calcul.
+- Le **profil altimétrique** apparaît en bas de la carte. Survoler le profil pour voir la position correspondante sur la carte.
 
 ## Export
 
@@ -78,10 +79,12 @@ Les calques sont accessibles depuis le sélecteur en bas à droite de la carte :
 - **Pentes** : couche de pentes coloree.
 - **Glaciers** : contours glaciaires RGI 7.0 en bleu semi-transparent. Se rafraîchit au déplacement de la carte.
 - **Cout** : heatmap de la surface de cout du chemin (vert = facile, rouge = difficile). Disponible uniquement après un calcul de trace.
+- **Traces alpinisme** : courses indexées depuis les fichiers GPX, colorées par cotation. Tooltip au survol.
+- **Segments terrain** : connexions locales (échelles, passages glaciers, etc.) en pointillé jaune.
 
 ## Limites connues
 
-- **Routage hors-track uniquement** : Le modèle est conçu pour du hors-piste. Les zones urbaines et les routes sont pénalisées, mais le programme ne connaît pas le réseau de sentiers. Placer les points de départ/arrivée en dehors des zones habitées pour de meilleurs résultats.
+- **Dépendance Valhalla** : le routage réseau et hybride nécessite Valhalla (lancé par Docker). Sans Valhalla, le pipeline bascule automatiquement en raster pur.
 - **Zone de calcul** : La zone s'étend à 4km autour des points de départ et d'arrivée.
 - **Bbox max 30km** : La zone de calcul est limitée à 30x30 km. Pour des traversées plus longues, découper en étapes.
 - **Premier calcul lent** : Le téléchargement des dalles Lidar peut prendre 1-5 min au premier usage sur une zone. Les dalles sont ensuite en cache local.
