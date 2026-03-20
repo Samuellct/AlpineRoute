@@ -279,3 +279,14 @@ def get_trail_cost(bbox_l93, transform, shape, resolution=1.0):
     except Exception as e:
         logger.warning("trails echec (non bloquant): %s", e)
         return None
+
+
+def get_trail_gdf(bbox_l93):
+    """Retourne le GeoDataFrame classifie (download + classify).
+    Pour le trail_graph. Retourne None si echec."""
+    try:
+        gdf = download_trails(bbox_l93)
+        return classify_trails(gdf)
+    except Exception as e:
+        logger.warning("trail gdf echec: %s", e)
+        return None

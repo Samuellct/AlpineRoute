@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.0.2]
+
+Correctif structurel : routage graphe local OSM pour les zones hors couverture Valhalla.
+
+### Added
+- Module `routing/trail_graph.py` : construit un graphe NetworkX depuis les sentiers Overpass (GeoDataFrame L93). Routage Dijkstra pondre par distance * trail_cost. Sous-echantillonnage 20m, fusion noeuds 15m.
+- Fonction `get_trail_gdf()` dans `cost/trails.py` : expose le GeoDataFrame classifie sans rasterisation.
+- Fallback trail_graph dans le pipeline : quand l'egress Valhalla echoue (snap trop loin), le pipeline tente un routage via le graphe OSM local avant de degrader en raster. Couvre les cas GPX full et GPX partial forward.
+- Strategie `gpx_trail_hybrid` : Valhalla approche + GPX milieu + trail_graph sortie.
+
+### Changed
+- Corridor GPX elargi : GPX_CORRIDOR_RATIO 0.35 -> 0.50, GPX_CORRIDOR_MIN_M 2000 -> 4000. Resout le probleme des 0 portails trouves sur les trajets courts.
+- Config trail graph : TRAIL_GRAPH_SUBSAMPLE_M=20, TRAIL_GRAPH_MERGE_M=15, TRAIL_GRAPH_MAX_SNAP_M=300.
+- Cache surface de cout : version bumped 2.0.2 (anciens caches invalides).
+
+### Fixed
+- GPX full coverage : ne degrade plus en partial+raster quand l'egress Valhalla echoue mais que des sentiers OSM existent pres de la destination. Le trail_graph prend le relais.
+- GPX partial forward : meme correction, trail_graph comme fallback avant le raster.
+- Corridor trop etroit : test 3 (Requin) avait 0/7 portails car corridor=2255m < 4000m.
+
 ## [2.0.1]
 
 Correctifs logique moteur de routage : re-entree Valhalla apres les gaps OSM.

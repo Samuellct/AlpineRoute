@@ -47,6 +47,8 @@ from alpineroute.routing.hybrid import (
     assemble_gpx_route,
 )
 from alpineroute.routing.gpx_graph import route_via_gpx, gpx_to_geojson_feature
+from alpineroute.routing.trail_graph import route_via_trail_graph
+from alpineroute.cost.trails import get_trail_gdf
 from alpineroute.alpine.segments import (
     load_segments_for_bbox, rasterize_segments, merge_trail_layers,
 )
@@ -339,17 +341,45 @@ def run_pipeline(req, progress_callback=None):
                 gpx_result = {**gpx_result, "coverage": "partial",
                               "gpx_exit_wgs84": exit_p["gpx_coords"]}
 
-        # sans egress viable: verifier que le GPX arrive assez pres de la dest
-        # sinon degrader en partial pour que le raster comble le trou
+        # sans egress Valhalla: tenter le graphe local OSM (trail_graph)
+        # avant de degrader en partial+raster
         if egress_vr is None and gpx_result["coverage"] == "full":
             exit_c = exit_p["gpx_coords"]
             exit_to_end_m = haversine_km(
                 exit_c[0], exit_c[1], end[0], end[1]) * 1000
-            if exit_to_end_m > SNAP_MAX_DISTANCE_M:
-                logger.warning("gpx full -> partial: exit a %.0fm de dest, "
-                               "raster prendra le relais", exit_to_end_m)
-                gpx_result = {**gpx_result, "coverage": "partial",
-                              "gpx_exit_wgs84": exit_c}
+
+            # essayer trail_graph depuis la sortie GPX vers la destination
+            if exit_to_end_m > 50:
+                try:
+                    from alpineroute.config import HYBRID_BBOX_MARGIN_M as _hbm
+                    from alpineroute.routing.hybrid import reduce_bbox as _rbbox
+                    _tail_bboxes = _rbbox(exit_c, end, margin_m=max(1000, _hbm // 2))
+                    _tail_gdf = get_trail_gdf(_tail_bboxes["bbox_l93"])
+                    _trail_route = route_via_trail_graph(_tail_gdf, exit_c, end)
+                except Exception as e:
+                    logger.warning("gpx full trail_graph echec: %s", e)
+                    _trail_route = None
+
+                if _trail_route is not None:
+                    # trail graph reussi: assembler approach + GPX + trail
+                    logger.info("gpx full: trail_graph egress OK (%.2fkm, snap=%.0f/%.0fm)",
+                                _trail_route["distance_km"],
+                                _trail_route["snap_start_m"], _trail_route["snap_end_m"])
+                    # convertir trail_route en pseudo-valhalla pour assemble_gpx_route
+                    egress_vr = {
+                        "coords": _trail_route["coords"],
+                        "distance_km": _trail_route["distance_km"],
+                        "duration_s": 0,
+                        "snap_start_m": _trail_route["snap_start_m"],
+                        "snap_end_m": _trail_route["snap_end_m"],
+                    }
+                else:
+                    if exit_to_end_m > SNAP_MAX_DISTANCE_M:
+                        logger.warning("gpx full -> partial: exit a %.0fm de dest, "
+                                       "trail_graph echec, raster prendra le relais",
+                                       exit_to_end_m)
+                        gpx_result = {**gpx_result, "coverage": "partial",
+                                      "gpx_exit_wgs84": exit_c}
 
         if gpx_result["coverage"] == "full" and (
                 approach_vr is not None or egress_vr is not None):
@@ -466,7 +496,71 @@ def run_pipeline(req, progress_callback=None):
                             result["saved_route_id"] = saved_route_id
                         return result
 
-                    # pas d'egress: fallback raster
+                    # pas d'egress Valhalla: tenter trail_graph
+                    logger.info("gpx fwd: pas d'egress Valhalla, tentative trail_graph")
+                    _trail_egress = None
+                    try:
+                        from alpineroute.config import HYBRID_BBOX_MARGIN_M as _hbm2
+                        from alpineroute.routing.hybrid import reduce_bbox as _rbbox2
+                        _t_bboxes = _rbbox2(gpx_exit, end, margin_m=max(1000, _hbm2 // 2))
+                        _t_gdf = get_trail_gdf(_t_bboxes["bbox_l93"])
+                        _trail_egress = route_via_trail_graph(_t_gdf, gpx_exit, end)
+                    except Exception as e:
+                        logger.warning("gpx fwd trail_graph echec: %s", e)
+
+                    if _trail_egress is not None:
+                        # upgrade: Valhalla + GPX + trail_graph
+                        logger.info("gpx fwd->full via trail_graph: %.2fkm",
+                                    _trail_egress["distance_km"])
+                        _pseudo_egress = {
+                            "coords": _trail_egress["coords"],
+                            "distance_km": _trail_egress["distance_km"],
+                            "duration_s": 0,
+                            "snap_start_m": _trail_egress["snap_start_m"],
+                            "snap_end_m": _trail_egress["snap_end_m"],
+                        }
+                        gpx_feature = assemble_gpx_route(
+                            approach_vr, gpx_result, _pseudo_egress)
+                        gpx_feature["properties"]["strategy"] = "gpx_trail_hybrid"
+                        _progress(progress_callback, "result", 0)
+                        saved_route_id = None
+                        if req.save:
+                            try:
+                                props = gpx_feature["properties"]
+                                route_data = {
+                                    "name": req.name,
+                                    "start_lat": req.start_lat, "start_lon": req.start_lon,
+                                    "end_lat": req.end_lat, "end_lon": req.end_lon,
+                                    "resolution": req.resolution, "month": req.month,
+                                    "acclimatized": req.acclimatized,
+                                    "distance_m": props["distance_km"] * 1000,
+                                    "dplus_m": props["dplus_m"],
+                                    "dminus_m": props["dminus_m"],
+                                    "time_tobler_h": props["time_tobler_h"],
+                                    "glacier_pct": 0, "cost_total": 0,
+                                    "computation_time_s": 0,
+                                    "geojson": json.dumps(gpx_feature),
+                                }
+                                saved_route_id = save_route(DB_PATH, route_data)
+                            except Exception as e:
+                                logger.warning("auto-save gpx_trail: %s", e)
+                        _progress(progress_callback, "result", 1.0)
+                        result = {
+                            "status": "ok",
+                            "route": gpx_feature,
+                            "computation_time_s": 0,
+                            "strategy": "gpx_trail_hybrid",
+                            "valhalla_available": True,
+                            "layers_used": ["gpx_graph", "valhalla", "trail_graph"],
+                            "coverage": "full",
+                        }
+                        if warnings:
+                            result["warnings"] = warnings
+                        if saved_route_id is not None:
+                            result["saved_route_id"] = saved_route_id
+                        return result
+
+                    # ni Valhalla ni trail_graph: fallback raster
                     strategy = "hybrid"
                     hybrid_info = {
                         "exit_point": gpx_exit,
@@ -475,7 +569,7 @@ def run_pipeline(req, progress_callback=None):
                         "_gpx_result": gpx_result,
                     }
                     valhalla_result = approach_vr
-                    logger.info("gpx fwd: pas d'egress, raster depuis "
+                    logger.info("gpx fwd: aucun egress, raster depuis "
                                 "(%.5f,%.5f) -> dest", gpx_exit[0], gpx_exit[1])
 
         elif _gpx_dir == "reverse":
