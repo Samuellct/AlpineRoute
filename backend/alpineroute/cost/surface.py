@@ -17,6 +17,7 @@ from alpineroute.config import (
     GLACIER_COST_FLAT, GLACIER_COST_MODERATE,
     GLACIER_COST_STEEP, GLACIER_COST_VERY_STEEP,
     ROUGHNESS_CLAMP, ROUGHNESS_SCALE,
+    HILLSLOPE_ONSET_DEG, HILLSLOPE_SCALE,
 )
 
 logger = logging.getLogger(__name__)
@@ -120,11 +121,22 @@ def compute_roughness_cost(roughness):
     return (1.0 + ROUGHNESS_SCALE * r).astype(np.float32)
 
 
+# -- facteur hill slope (devers)
+
+def compute_hillslope_cost(slope_deg):
+    """Penalite devers: progressive au-dela de HILLSLOPE_ONSET_DEG."""
+    return np.where(
+        slope_deg > HILLSLOPE_ONSET_DEG,
+        1.0 + HILLSLOPE_SCALE * (slope_deg - HILLSLOPE_ONSET_DEG) / 30.0,
+        1.0,
+    ).astype(np.float32)
+
+
 # --- assemblage final ---
 
 def build_cost_surface(dem, slope, aspect, roughness, glacier_mask,
                        month=7, acclimatized=True, landcover_cost=None,
-                       trail_cost=None):
+                       trail_cost=None, radiation_cost=None):
     """Construit la surface de cout multi-criteres. Retourne (cost, factors, nodata_mask)."""
     nodata_mask = (slope == NODATA_VALUE) | np.isnan(slope)
 
@@ -139,8 +151,15 @@ def build_cost_surface(dem, slope, aspect, roughness, glacier_mask,
     logger.info("f_altitude (hypoxie)")
     f_alt = compute_altitude_cost(dem_clean, acclimatized)
 
-    logger.info("f_aspect (orientation/saison, month=%d)", month)
-    f_aspect = compute_aspect_cost(aspect_clean, slope_clean, dem_clean, month)
+    # radiation remplace aspect si dispo
+    if radiation_cost is not None:
+        logger.info("f_radiation (modele physique)")
+        f_exposure = radiation_cost
+        exposure_label = "radiation"
+    else:
+        logger.info("f_aspect (orientation/saison, month=%d)", month)
+        f_exposure = compute_aspect_cost(aspect_clean, slope_clean, dem_clean, month)
+        exposure_label = "aspect"
 
     logger.info("f_glacier")
     f_glacier = compute_glacier_cost(glacier_mask, slope_clean)
@@ -148,7 +167,10 @@ def build_cost_surface(dem, slope, aspect, roughness, glacier_mask,
     logger.info("f_roughness")
     f_rough = compute_roughness_cost(rough_clean)
 
-    cost = f_slope * f_alt * f_aspect * f_glacier * f_rough
+    logger.info("f_hillslope")
+    f_hillslope = compute_hillslope_cost(slope_clean)
+
+    cost = f_slope * f_alt * f_exposure * f_glacier * f_rough * f_hillslope
 
     # landcover (WorldCover) si dispo
     if landcover_cost is not None:
@@ -168,8 +190,8 @@ def build_cost_surface(dem, slope, aspect, roughness, glacier_mask,
     cost[nodata_mask] = NODATA_VALUE
 
     factors = {
-        "slope": f_slope, "altitude": f_alt, "aspect": f_aspect,
-        "glacier": f_glacier, "roughness": f_rough,
+        "slope": f_slope, "altitude": f_alt, exposure_label: f_exposure,
+        "glacier": f_glacier, "roughness": f_rough, "hillslope": f_hillslope,
     }
     if landcover_cost is not None:
         factors["landcover"] = landcover_cost
@@ -184,7 +206,7 @@ def build_cost_surface(dem, slope, aspect, roughness, glacier_mask,
 
 def build_base_cost(dem, slope, aspect, roughness, glacier_mask,
                     month=7, acclimatized=True, landcover_cost=None,
-                    trail_cost=None):
+                    trail_cost=None, radiation_cost=None):
     """Surface de cout sans le facteur pente Tobler.
     Utilisee par le Dijkstra anisotrope qui calcule Tobler per-edge."""
     nodata_mask = (slope == NODATA_VALUE) | np.isnan(slope)
@@ -195,12 +217,16 @@ def build_base_cost(dem, slope, aspect, roughness, glacier_mask,
     dem_clean = np.where(nodata_mask, 0, dem)
 
     f_alt = compute_altitude_cost(dem_clean, acclimatized)
-    f_aspect = compute_aspect_cost(aspect_clean, slope_clean, dem_clean, month)
+    if radiation_cost is not None:
+        f_exposure = radiation_cost
+    else:
+        f_exposure = compute_aspect_cost(aspect_clean, slope_clean, dem_clean, month)
     f_glacier = compute_glacier_cost(glacier_mask, slope_clean)
     f_rough = compute_roughness_cost(rough_clean)
+    f_hillslope = compute_hillslope_cost(slope_clean)
 
     # tout sauf Tobler
-    base = f_alt * f_aspect * f_glacier * f_rough
+    base = f_alt * f_exposure * f_glacier * f_rough * f_hillslope
 
     if landcover_cost is not None:
         base *= landcover_cost

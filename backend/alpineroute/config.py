@@ -9,6 +9,7 @@ DATA_DIR = os.environ.get("ALPINEROUTE_DATA_DIR", os.path.join(BASE_DIR, "data")
 DEM_CACHE_DIR = os.path.join(DATA_DIR, "cache", "dem")
 COST_CACHE_DIR = os.path.join(DATA_DIR, "cache", "cost")
 COST_CACHE_MAX_AGE_DAYS = 90
+COST_CACHE_VERSION = "2.0.0-rc.1"
 RGI_DIR = os.path.join(DATA_DIR, "rgi")
 DERIVED_DIR = os.path.join(DATA_DIR, "derived")
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -88,6 +89,22 @@ GLACIER_COST_VERY_STEEP = 25.0      # > 30 deg (chutes de seracs, infranchissabl
 # ---- cost function : rugosite ----
 ROUGHNESS_CLAMP = 5.0               # max TRI en metres
 ROUGHNESS_SCALE = 0.8               # cost = 1 + scale * TRI
+
+# ---- cost function : hill slope (devers / pente laterale) ----
+HILLSLOPE_ONSET_DEG = 25            # debut penalite
+HILLSLOPE_SCALE = 0.8               # raideur de la penalite
+
+# ---- radiation solaire ----
+RADIATION_CACHE_DIR = os.path.join(DATA_DIR, "cache", "radiation")
+RADIATION_N_AZIMUTHS = 36           # 36 directions = 10 deg par pas
+RADIATION_DEM_RESOLUTION = 5.0      # resolution reduite pour les horizons
+RADIATION_TIME_STEP_H = 0.5         # pas de temps integration journaliere (30 min)
+RADIATION_HORIZON_MAX_DIST_M = 5000
+RADIATION_SUMMER_PENALTY = 0.5      # penalite max face exposee en ete
+RADIATION_WINTER_PENALTY = 0.3      # penalite max face ombree en hiver
+RADIATION_SUMMER_MONTHS = [6, 7, 8, 9]
+RADIATION_SLOPE_THRESHOLD = 15      # pas de penalite radiation sous ce seuil (deg)
+RADIATION_ALTITUDE_THRESHOLD = 2000 # pas de penalite radiation sous cette altitude (m)
 
 # ---- cost function : WorldCover (ESA 2021) ----
 WORLDCOVER_MULTIPLIERS = {

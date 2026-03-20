@@ -15,6 +15,8 @@ flowchart LR
     C --> D[Mosaic + crop]
     D --> E[Terrain: pente, aspect, rugosite]
     E --> F[Surface de cout]
+    E --> R[Radiation solaire]
+    R --> F
     G[Glaciers RGI] --> F
     H[WorldCover ESA] --> F
     F --> F2
@@ -35,6 +37,7 @@ Le code backend est dans `backend/alpineroute/` :
 | `dem/terrain` | `dem/terrain.py` | Pente et aspect (Horn's method via scipy.ndimage.convolve), rugosite TRI 3x3. |
 | `cost/surface` | `cost/surface.py` | Facteurs de cout individuels (Tobler, hypoxie, aspect, glacier, rugosite) et assemblage multiplicatif. |
 | `cost/cache` | `cost/cache.py` | Cache pre-calcul de la surface de cout (sans Tobler/trails). Cle = sha256(bbox+res+mois), stockage npz + JSON sidecar, TTL 90j. |
+| `cost/radiation` | `cost/radiation.py` | Radiation solaire physique : position NOAA, horizons, ombres portees, irradiance directe, cache. |
 | `cost/landcover` | `cost/landcover.py` | Integration WorldCover ESA : lecture /vsicurl/, reprojection L93, multiplicateurs par classe. |
 | `routing/pathfinding` | `routing/pathfinding.py` | Preparation de la grille (nodata -> inf) et lancement de `skimage.graph.route_through_array`. |
 | `routing/export` | `routing/export.py` | Export GPX (gpxpy) et GeoJSON 3D, simplification Douglas-Peucker. |

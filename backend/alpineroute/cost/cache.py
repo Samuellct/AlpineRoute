@@ -11,7 +11,7 @@ import logging
 import numpy as np
 from rasterio.transform import Affine
 
-from alpineroute.config import COST_CACHE_DIR, COST_CACHE_MAX_AGE_DAYS
+from alpineroute.config import COST_CACHE_DIR, COST_CACHE_MAX_AGE_DAYS, COST_CACHE_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +41,12 @@ def get_cached_cost(cache_key):
     try:
         with open(meta_path, "r") as f:
             meta = json.load(f)
+
+        # verif version cache (invalide si format change)
+        if meta.get("version") != COST_CACHE_VERSION:
+            logger.info("cost cache version mismatch: %s != %s, skip",
+                        meta.get("version"), COST_CACHE_VERSION)
+            return None
 
         data = np.load(npz_path)
         # reconstruire le transform depuis les 6 floats
@@ -92,7 +98,7 @@ def save_cost_cache(cache_key, cached_base, slope_deg, dem, glacier_mask,
             "transform": [t.a, t.b, t.c, t.d, t.e, t.f],
             "shape": list(dem.shape),
             "created": time.time(),
-            "version": "2.0.0-beta.3",
+            "version": COST_CACHE_VERSION,
         }
         with open(meta_path, "w") as f:
             json.dump(meta, f)

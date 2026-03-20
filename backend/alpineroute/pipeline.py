@@ -25,7 +25,9 @@ from alpineroute.cost.glacier import get_glacier_mask
 from alpineroute.cost.surface import (
     build_cost_surface, build_base_cost,
     compute_slope_cost, compute_altitude_cost,
+    compute_hillslope_cost,
 )
+from alpineroute.cost.radiation import get_radiation_cost
 from alpineroute.cost.trails import get_trail_cost
 from alpineroute.cost.barriers import get_barrier_masks
 from alpineroute.cost.zones import rasterize_user_zones
@@ -63,15 +65,16 @@ _STEP_WEIGHTS = {
     "gpx_graph": 2,
     "bbox": 0,
     "cache": 1,
-    "dem": 32,
-    "terrain": 14,
+    "dem": 30,
+    "terrain": 12,
     "worldcover": 5,
     "glacier": 5,
+    "radiation": 3,
     "osm": 5,
     "cost": 5,
     "zones": 2,
     "pathfinding": 19,
-    "result": 5,
+    "result": 6,
 }
 
 
@@ -521,8 +524,8 @@ def run_pipeline(req, progress_callback=None):
                     cache_key, meta.get("shape"), meta.get("resolution", 0),
                     meta.get("month", 0))
 
-        # sauter les etapes DEM/terrain/worldcover/glacier dans la progression
-        for skip_step in ("dem", "terrain", "worldcover", "glacier"):
+        # sauter les etapes DEM/terrain/worldcover/glacier/radiation dans la progression
+        for skip_step in ("dem", "terrain", "worldcover", "glacier", "radiation"):
             _progress(progress_callback, skip_step, 1.0)
 
         dem = cached["dem"]
@@ -639,6 +642,16 @@ def run_pipeline(req, progress_callback=None):
                          GLACIER_COST_STEEP, GLACIER_COST_VERY_STEEP)
         _progress(progress_callback, "glacier", 1.0)
 
+        # -- 5c. radiation solaire (remplace f_aspect si dispo)
+        _progress(progress_callback, "radiation", 0)
+        radiation_cost = get_radiation_cost(dem, slope, aspect, req.resolution,
+                                            bbox_l93, bbox_wgs84, req.month)
+        if radiation_cost is not None:
+            logger.info("radiation: modele physique actif")
+        else:
+            logger.info("radiation: fallback sur f_aspect cosinus")
+        _progress(progress_callback, "radiation", 1.0)
+
         # -- 5b. OSM trails + barriers
         _progress(progress_callback, "osm", 0)
         trail_cost = get_trail_cost(bbox_l93, transform, dem.shape, resolution=req.resolution)
@@ -672,6 +685,7 @@ def run_pipeline(req, progress_callback=None):
         _progress(progress_callback, "cost", 0)
 
         # construire cached_base (sans Tobler, sans trails) pour le cache
+        # inclut: altitude, radiation (ou aspect), glacier, rugosite, hillslope, landcover
         nodata_mask = (slope == NODATA_VALUE) | np.isnan(slope)
         slope_clean = np.where(nodata_mask, 0, slope)
         aspect_clean = np.where(nodata_mask, 0, aspect)
@@ -683,11 +697,15 @@ def run_pipeline(req, progress_callback=None):
             compute_aspect_cost as _f_aspect,
             compute_glacier_cost as _f_glacier,
             compute_roughness_cost as _f_rough,
+            compute_hillslope_cost as _f_hillslope,
         )
+        _f_exposure = radiation_cost if radiation_cost is not None else \
+            _f_aspect(aspect_clean, slope_clean, dem_clean, req.month)
         _cached_base = (_f_alt(dem_clean, req.acclimatized)
-                        * _f_aspect(aspect_clean, slope_clean, dem_clean, req.month)
+                        * _f_exposure
                         * _f_glacier(glacier_mask, slope_clean)
-                        * _f_rough(rough_clean))
+                        * _f_rough(rough_clean)
+                        * _f_hillslope(slope_clean))
         if landcover is not None:
             _cached_base *= landcover
 
@@ -701,11 +719,13 @@ def run_pipeline(req, progress_callback=None):
                 dem, slope, aspect, roughness, glacier_mask,
                 month=req.month, acclimatized=req.acclimatized,
                 landcover_cost=landcover, trail_cost=trail_cost,
+                radiation_cost=radiation_cost,
             )
             cost_for_display, factors, _ = build_cost_surface(
                 dem, slope, aspect, roughness, glacier_mask,
                 month=req.month, acclimatized=req.acclimatized,
                 landcover_cost=landcover, trail_cost=trail_cost,
+                radiation_cost=radiation_cost,
             )
             del factors
         else:
@@ -713,6 +733,7 @@ def run_pipeline(req, progress_callback=None):
                 dem, slope, aspect, roughness, glacier_mask,
                 month=req.month, acclimatized=req.acclimatized,
                 landcover_cost=landcover, trail_cost=trail_cost,
+                radiation_cost=radiation_cost,
             )
             del factors
             base_cost = None

@@ -14,6 +14,7 @@ const STEP_LABELS: Record<string, string> = {
   terrain: 'Analyse terrain...',
   worldcover: 'Occupation du sol...',
   glacier: 'Detection glaciers...',
+  radiation: 'Radiation solaire...',
   osm: 'Sentiers OSM...',
   cost: 'Surface de cout...',
   zones: 'Zones utilisateur...',

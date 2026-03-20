@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.0.0-rc.1]
+
+### Added
+- Hill slope : pénalité progressive pour les pentes latérales (devers > 25 deg)
+- Radiation solaire : remplace le f_aspect par un modèle physique avec ombres portées (horizons + irradiance directe)
+- Cache radiation : angles d'horizon permanents, radiation mensuelle cachée par zone
+- Fallback automatique sur aspect si la radiation échoue
+
+### Changed
+- Surface de coût : nouveau facteur f_hillslope dans le produit multiplicatif
+- Surface de coût : f_radiation remplace f_aspect quand disponible
+- SSE : étape "radiation" dans la progression frontend
+- Cache coût : version bumpée (rc.1), anciens caches beta.3 invalides automatiquement
+
 ## [2.0.0-beta.3]
 
 ### Added

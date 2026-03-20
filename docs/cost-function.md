@@ -4,7 +4,7 @@
 
 Le coût de traversée d'un pixel est le produit de plusieurs facteurs :
 
-$$C = f_{pente} \times f_{altitude} \times f_{aspect} \times f_{glacier} \times f_{rugosité}$$
+$$C = f_{pente} \times f_{altitude} \times f_{radiation} \times f_{glacier} \times f_{rugosité} \times f_{devers}$$
 
 Chaque facteur est un multiplicateur >= 1.0 (sauf pente qui est normalisée à 1.0 pr les terrain plat). Le cout final est multiplie par la distance euclidienne entre pixels voisins lors du pathfinding.
 
@@ -59,25 +59,46 @@ $$f_{altitude} = \frac{1}{capacite}$$
 - Buskirk E.R. et al. (1966). *Maximal performance at altitude and on return from altitude in conditioned runners.* Journal of Applied Physiology.
 - West J.B. (1996). *Prediction of barometric pressures at high altitude.* Journal of Applied Physiology.
 
-## Facteur aspect / saison
+## Facteur radiation solaire
 
-Pénalité basée sur l'orientation de la pente et la période de l'année. Modalise le risque lié à l'exposition solaire.
+Remplace l'ancien facteur aspect/saison (cosinus simple) par un modele physique avec ombres portees. Quand le calcul de radiation echoue (DEM trop petit, etc.), l'ancien modele cosinus est utilise en fallback.
 
-### Eté (juin-septembre)
+### Principe
 
-Les faces sud recoivent plus de soleil, ce qui augmente le risque de chutes de pierres avec le degel, de crevasses ouvertes et de neige pourrie.
+1. **Position solaire** (algo NOAA simplifie) : calcule l'elevation et l'azimut du soleil toutes les 30 min sur une journee representative (le 15 du mois).
+2. **Angles d'horizon** : pour chaque pixel, balayage radial vectorise dans 36 directions. On mesure l'angle d'elevation maximum vers les reliefs environnants (portee ~5 km). Calcule sur un DEM sous-echantillonne a 5 m pour les performances.
+3. **Ombres portees** : un pixel est a l'ombre si l'elevation du soleil est inferieure a l'angle d'horizon dans la direction du soleil (interpolation entre les 2 azimuths encadrants).
+4. **Irradiance directe** : loi du cosinus de l'angle d'incidence sur surface inclinee, mise a zero si a l'ombre.
+5. **Integration journaliere** : cumul de l'irradiance sur la journee (pas de 30 min, 4h-22h UTC).
 
-$$penalite = 1 + P_{max} \cdot \max(\cos(\theta - 180), 0)$$
+### Cout
 
-Ou $\theta$ est l'aspect en degrés (0 = nord). La pénalité est notée seulement si pente > 30 deg et altitude > 2500 m : $P_{max}$ = 0.5
+La radiation journaliere normalisee est transformee en facteur multiplicatif :
 
-### Hiver (octobre-mai)
+- **Ete** (juin-sept) : les faces tres exposees sont penalisees (neige molle, degel, chutes de pierres). Penalite max +50%.
+- **Hiver** (oct-mai) : les faces ombrees sont penalisees (verglas, neige dure). Penalite max +30%.
 
-Les faces nord accumulent plus de neige et recoivent moins de soleil.
+Conditions : pente > 15 deg **et** altitude > 2000 m. En dessous, pas de penalite (1.0).
 
-$$penalite = 1 + P_{max} \cdot \max(\cos(\theta), 0)$$
+### Cache
 
-Appliquée si pente > 25 deg. $P_{max}$ = 0.3
+- **Horizons** : cache permanent par zone/resolution (ne depend pas du mois)
+- **Radiation mensuelle** : cache par zone/resolution/mois
+
+### Fallback (ancien modele aspect/saison)
+
+Si la radiation n'est pas calculable, le facteur aspect cosinus est utilise :
+
+- Ete : penalite faces sud, $P_{max}$ = 0.5 (pente > 30 deg, alt > 2500 m)
+- Hiver : penalite faces nord, $P_{max}$ = 0.3 (pente > 25 deg)
+
+## Facteur devers (hill slope)
+
+Penalite progressive pour les pentes laterales (traversees en devers). Onset a 25 deg.
+
+$$f_{devers} = \begin{cases} 1.0 & \text{si } pente \leq 25° \\ 1 + 0.8 \cdot \frac{pente - 25}{30} & \text{si } pente > 25° \end{cases}$$
+
+Le devers est penalise car la progression laterale sur terrain raide est plus lente et plus dangereuse que la montee/descente directe (qui est deja capturee par Tobler).
 
 ## Facteur glacier
 
@@ -87,10 +108,10 @@ Surcout pour les zones glaciaires, fonction de la pente locale.
 
 | Pente | Multiplicateur | Contexte |
 |-------|---------------|----------|
-| < 10 deg | 1.3 | Glacier plat |
-| 10-20 deg | 2.0 | Pente moderée |
-| 20-30 deg | 4.0 | Pente raide, risque crevasses |
-| > 30 deg | 10.0 | Zone de seracs |
+| < 10 deg | 3.0 | Glacier plat (crevasses, encordement) |
+| 10-20 deg | 5.0 | Pente moderee |
+| 20-30 deg | 10.0 | Pente raide, zone de seracs |
+| > 30 deg | 25.0 | Chutes de seracs, quasi-infranchissable |
 
 Le masque glacier provient du Randolph Glacier Inventory 7 rasterisé sur la grille Lidar.
 
@@ -160,12 +181,17 @@ Tous les paramètres sont centralisés dans `backend/alpineroute/config.py` :
 | `HYPOXIA_RATE_ACCLIMATIZED` | 0.03 | Taux perte acclimaté |
 | `HYPOXIA_RATE_NOT_ACCLIMATIZED` | 0.063 | Taux perte non acclimaté |
 | `HYPOXIA_MIN_CAPACITY` | 0.3 | Capacite O2 minimum |
-| `ASPECT_SOUTH_PENALTY_MAX` | 0.5 | Penalite max face sud ete |
-| `ASPECT_NORTH_PENALTY_MAX` | 0.3 | Penalite max face nord hiver |
-| `GLACIER_COST_FLAT` | 1.3 | Cout glacier < 10 deg |
-| `GLACIER_COST_MODERATE` | 2.0 | Cout glacier 10-20 deg |
-| `GLACIER_COST_STEEP` | 4.0 | Cout glacier 20-30 deg |
-| `GLACIER_COST_VERY_STEEP` | 10.0 | Cout glacier > 30 deg |
+| `RADIATION_SUMMER_PENALTY` | 0.5 | Penalite max radiation ete |
+| `RADIATION_WINTER_PENALTY` | 0.3 | Penalite max radiation hiver |
+| `RADIATION_SLOPE_THRESHOLD` | 15 | Seuil pente radiation (deg) |
+| `RADIATION_ALTITUDE_THRESHOLD` | 2000 | Seuil altitude radiation (m) |
+| `RADIATION_N_AZIMUTHS` | 36 | Nb directions balayage horizon |
+| `HILLSLOPE_ONSET_DEG` | 25 | Debut penalite devers (deg) |
+| `HILLSLOPE_SCALE` | 0.8 | Raideur penalite devers |
+| `GLACIER_COST_FLAT` | 3.0 | Cout glacier < 10 deg |
+| `GLACIER_COST_MODERATE` | 5.0 | Cout glacier 10-20 deg |
+| `GLACIER_COST_STEEP` | 10.0 | Cout glacier 20-30 deg |
+| `GLACIER_COST_VERY_STEEP` | 25.0 | Cout glacier > 30 deg |
 | `ROUGHNESS_SCALE` | 0.8 | Echelle cout rugosite |
 | `ROUGHNESS_CLAMP` | 5.0 | TRI max (m) |
 
@@ -174,4 +200,4 @@ Tous les paramètres sont centralisés dans `backend/alpineroute/config.py` :
 Plusieurs points a améliorer pour les V1.1 et V2.0:
 
 - **Pas de détection de crevasses** : le masque RGI donne les contours glaciaires mais pas la structure interne. Prévu de tester une approche Deep Learning pour la V2.0 (https://doi.org/10.1016/j.jag.2025.104495).
-- **Saisonnalité simplifiée** : le modèle aspect/saison donne une info basique, modele python de radiation solaire en cours de tests pour la V2.0
+- **Radiation simplifiée** : le modele calcule l'irradiance directe mais pas la diffuse (ciel couvert, reflexions). Suffisant pour discriminer faces exposees/ombrees en haute montagne.

@@ -128,7 +128,7 @@ curl -X POST http://localhost:8000/calculate-async \
 
 Stream SSE (Server-Sent Events) de la progression d'un calcul async.
 
-**Etapes** : `network` -> `gpx_graph` -> `bbox` -> `cache` -> `dem` -> `terrain` -> `worldcover` -> `glacier` -> `osm` -> `cost` -> `zones` -> `pathfinding` -> `result`
+**Etapes** : `network` -> `gpx_graph` -> `bbox` -> `cache` -> `dem` -> `terrain` -> `worldcover` -> `glacier` -> `radiation` -> `osm` -> `cost` -> `zones` -> `pathfinding` -> `result`
 
 En cas de cache hit, les etapes `dem` a `glacier` sont sautees (progression rapide).
 

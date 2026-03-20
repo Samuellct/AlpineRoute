@@ -14,6 +14,7 @@ from alpineroute.cost.surface import (
     compute_aspect_cost,
     compute_glacier_cost,
     compute_roughness_cost,
+    compute_hillslope_cost,
     build_cost_surface,
 )
 from alpineroute.cost.landcover import build_landcover_cost
@@ -208,7 +209,7 @@ class TestBuildCostSurface:
         cost, factors, nodata_mask = build_cost_surface(
             tiny_dem, slope, aspect, roughness, glacier_mask)
         assert cost.shape == (20, 20)
-        assert len(factors) == 5
+        assert len(factors) == 6  # slope, altitude, aspect, glacier, roughness, hillslope
 
     def test_nodata_propagated(self, flat_dem, glacier_mask):
         slope = np.zeros((20, 20), dtype=np.float32)
@@ -220,6 +221,48 @@ class TestBuildCostSurface:
             flat_dem, slope, aspect, roughness, glacier_mask)
         assert cost[5, 5] == NODATA_VALUE
         assert nodata_mask[5, 5]
+
+
+# ---- hill slope (devers) ----
+
+class TestHillslopeCost:
+    def test_below_onset(self):
+        cost = compute_hillslope_cost(np.array([20.0]))
+        assert abs(cost[0] - 1.0) < 1e-5
+
+    def test_above_onset(self):
+        cost = compute_hillslope_cost(np.array([40.0]))
+        assert cost[0] > 1.0
+
+    def test_continuity_at_onset(self):
+        # pas de saut brutal a 25 deg
+        slopes = np.arange(24, 27, 0.5, dtype=np.float32)
+        costs = compute_hillslope_cost(slopes)
+        for i in range(len(costs) - 1):
+            assert costs[i + 1] >= costs[i] - 0.001
+            ratio = costs[i + 1] / max(costs[i], 0.001)
+            assert ratio < 1.2, f"saut a {slopes[i]}: ratio={ratio}"
+
+    def test_monotonic(self):
+        slopes = np.arange(25, 60, dtype=np.float32)
+        costs = compute_hillslope_cost(slopes)
+        for i in range(len(costs) - 1):
+            assert costs[i + 1] >= costs[i]
+
+
+class TestBuildCostWithRadiation:
+    def test_radiation_replaces_aspect(self, flat_dem, glacier_mask):
+        slope = np.full((20, 20), 30.0, dtype=np.float32)
+        aspect = np.full((20, 20), 180.0, dtype=np.float32)  # plein sud
+        roughness = np.zeros((20, 20), dtype=np.float32)
+        rad_cost = np.full((20, 20), 1.2, dtype=np.float32)
+
+        cost, factors, _ = build_cost_surface(
+            flat_dem, slope, aspect, roughness, glacier_mask,
+            radiation_cost=rad_cost)
+        # le facteur doit etre "radiation", pas "aspect"
+        assert "radiation" in factors
+        assert "aspect" not in factors
 
 
 # ---- WorldCover infranchissable ----
