@@ -1,5 +1,4 @@
-# backend AlpineRoute -- python:3.11-slim + pip wheels (ref A07)
-# les wheels rasterio PyPI embarquent leur propre GDAL, pas besoin de conda
+# backend AlpineRoute -- python:3.11-slim + pip wheels
 
 FROM python:3.11-slim
 
