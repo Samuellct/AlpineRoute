@@ -64,7 +64,7 @@ export interface MarkerPoint {
 
 export type BasemapId = 'plan' | 'satellite' | 'topo-global' | 'satellite-global'
 
-export type OverlayId = 'slopes' | 'cost' | 'glaciers' | 'alpine-routes' | 'segments'
+export type OverlayId = 'slopes' | 'cost' | 'glaciers' | 'alpine-routes' | 'segments' | 'altitude'
 
 // -- historique --
 

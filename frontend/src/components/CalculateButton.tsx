@@ -6,21 +6,21 @@ import { calculateRouteAsync, subscribeProgress } from '../api'
 // noms d'etapes lisibles
 const STEP_LABELS: Record<string, string> = {
   init: 'Initialisation...',
-  network: 'Reseau routier...',
+  network: 'Réseau routier...',
   gpx_graph: 'Traces GPX...',
   bbox: 'Calcul emprise...',
-  cache: 'Verification cache...',
-  dem: 'Telechargement MNT...',
+  cache: 'Vérification cache...',
+  dem: 'Téléchargement MNT...',
   terrain: 'Analyse terrain...',
   worldcover: 'Occupation du sol...',
-  glacier: 'Detection glaciers...',
+  glacier: 'Détection glaciers...',
   radiation: 'Radiation solaire...',
   osm: 'Sentiers OSM...',
-  cost: 'Surface de cout...',
+  cost: 'Surface de coût...',
   zones: 'Zones utilisateur...',
   pathfinding: 'Recherche de chemin...',
-  result: 'Export resultats...',
-  done: 'Termine',
+  result: 'Export résultats...',
+  done: 'Terminé',
 }
 
 export default function CalculateButton() {

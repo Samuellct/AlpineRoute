@@ -2,7 +2,7 @@ import { useApp } from '../context'
 import { getSelectedRoute } from '../types'
 
 const STRATEGY_LABELS: Record<string, { label: string; color: string }> = {
-  network: { label: 'Reseau OSM', color: 'bg-green-600' },
+  network: { label: 'Réseau OSM', color: 'bg-green-600' },
   hybrid: { label: 'Hybride', color: 'bg-blue-600' },
   raster: { label: 'Raster', color: 'bg-amber-600' },
   hybrid_bridge: { label: 'Pont raster', color: 'bg-blue-500' },
@@ -25,7 +25,7 @@ export default function RouteStats() {
     { label: 'D-', value: `${p.dminus_m} m` },
     { label: 'Temps Tobler', value: `${p.time_tobler_h} h` },
     { label: 'Glacier', value: `${p.glacier_pct}%` },
-    { label: 'Resolution', value: `${p.resolution_m} m` },
+    { label: 'Résolution', value: `${p.resolution_m} m` },
     { label: 'Calcul', value: `${ct} s` },
   ]
 
@@ -35,7 +35,7 @@ export default function RouteStats() {
   return (
     <div>
       <h3 className="text-xs text-gray-400 mb-2 uppercase tracking-wider">
-        Resultats
+        Résultats
         {nRoutes > 1 && (
           <span className="ml-2 normal-case text-gray-500">
             Route {state.selectedRouteIndex + 1}/{nRoutes}

@@ -12,7 +12,7 @@ function downloadFile(content: string, filename: string, mime: string) {
   URL.revokeObjectURL(url)
 }
 
-function toGPX(coords: [number, number, number][]): string {
+function toGPX(coords: [number, number, number][], trackName: string): string {
   const trkpts = coords.map(([lon, lat, ele]) =>
     `      <trkpt lat="${lat}" lon="${lon}"><ele>${ele}</ele></trkpt>`
   ).join('\n')
@@ -20,7 +20,7 @@ function toGPX(coords: [number, number, number][]): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="AlpineRoute">
   <trk>
-    <name>AlpineRoute</name>
+    <name>${trackName}</name>
     <trkseg>
 ${trkpts}
     </trkseg>
@@ -35,9 +35,13 @@ export default function ExportButtons() {
   const route = getSelectedRoute(state.routeResult, state.selectedRouteIndex)
   if (!route) return null
 
+  const p = route.properties
+  const suffix = p.route_index > 0 ? `_alt${p.route_index}` : ''
+  const baseName = `AlpineRoute_${p.distance_km}km_D+${p.dplus_m}m${suffix}`
+
   function exportGPX() {
-    const gpx = toGPX(route!.geometry.coordinates)
-    downloadFile(gpx, 'alpineroute.gpx', 'application/gpx+xml')
+    const gpx = toGPX(route!.geometry.coordinates, baseName)
+    downloadFile(gpx, `${baseName}.gpx`, 'application/gpx+xml')
   }
 
   function exportGeoJSON() {
@@ -45,7 +49,7 @@ export default function ExportButtons() {
       type: 'FeatureCollection',
       features: [route],
     }
-    downloadFile(JSON.stringify(fc, null, 2), 'alpineroute.geojson', 'application/geo+json')
+    downloadFile(JSON.stringify(fc, null, 2), `${baseName}.geojson`, 'application/geo+json')
   }
 
   return (

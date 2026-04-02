@@ -199,3 +199,21 @@ export async function fetchCostSurface(): Promise<CostSurfaceData> {
     bounds: [[west, south], [east, north]],
   }
 }
+
+export async function fetchAltitudeSurface(): Promise<CostSurfaceData> {
+  const resp = await fetch('/api/altitude-surface')
+  if (!resp.ok) throw new Error(`Erreur ${resp.status}`)
+
+  const south = parseFloat(resp.headers.get('X-Bounds-South') || '0')
+  const north = parseFloat(resp.headers.get('X-Bounds-North') || '0')
+  const west = parseFloat(resp.headers.get('X-Bounds-West') || '0')
+  const east = parseFloat(resp.headers.get('X-Bounds-East') || '0')
+
+  const blob = await resp.blob()
+  const imageUrl = URL.createObjectURL(blob)
+
+  return {
+    imageUrl,
+    bounds: [[west, south], [east, north]],
+  }
+}

@@ -7,8 +7,9 @@ import { TerraDrawMapLibreGLAdapter } from 'terra-draw-maplibre-gl-adapter'
 import { useApp } from '../context'
 import { getSelectedRoute } from '../types'
 import type { BasemapId, Coord3D, ZoneType } from '../types'
-import { useSlopesOverlay, useGlaciersOverlay, useCostOverlay, useAlpineRoutesOverlay, useSegmentsOverlay } from '../hooks/useOverlays'
+import { useSlopesOverlay, useGlaciersOverlay, useCostOverlay, useAlpineRoutesOverlay, useSegmentsOverlay, useAltitudeOverlay } from '../hooks/useOverlays'
 import BasemapSelector from './BasemapSelector'
+import Legend from './Legend'
 
 // position par defaut
 const CENTER: [number, number] = [6.87, 45.88]
@@ -301,6 +302,7 @@ export default function RouteMap() {
   useCostOverlay(mapRef.current, state.activeOverlays, state.routeResult)
   useAlpineRoutesOverlay(mapRef.current, state.activeOverlays)
   useSegmentsOverlay(mapRef.current, state.activeOverlays)
+  useAltitudeOverlay(mapRef.current, state.activeOverlays, state.routeResult)
 
   // helper pour creer/deplacer un marker
   const upsertMarker = useCallback((
@@ -493,6 +495,7 @@ export default function RouteMap() {
     <div className="w-full h-full relative">
       <div ref={containerRef} className="w-full h-full" />
       <BasemapSelector />
+      <Legend />
     </div>
   )
 }

@@ -28,7 +28,7 @@ class RouteRequest(BaseModel):
     def check_lat(cls, v):
         lo, hi = VALID_LAT_RANGE
         if not (lo <= v <= hi):
-            raise ValueError(f"latitude {v} hors range [{lo}, {hi}]")
+            raise ValueError(f"latitude {v} hors plage [{lo}, {hi}]")
         return v
 
     @field_validator("start_lon", "end_lon")
@@ -36,28 +36,28 @@ class RouteRequest(BaseModel):
     def check_lon(cls, v):
         lo, hi = VALID_LON_RANGE
         if not (lo <= v <= hi):
-            raise ValueError(f"longitude {v} hors range [{lo}, {hi}]")
+            raise ValueError(f"longitude {v} hors plage [{lo}, {hi}]")
         return v
 
     @field_validator("resolution")
     @classmethod
     def check_resolution(cls, v):
         if v not in VALID_RESOLUTIONS:
-            raise ValueError(f"resolution {v} invalide, accepte: {VALID_RESOLUTIONS}")
+            raise ValueError(f"résolution {v} invalide, acceptée: {VALID_RESOLUTIONS}")
         return v
 
     @field_validator("month")
     @classmethod
     def check_month(cls, v):
         if not (1 <= v <= 12):
-            raise ValueError(f"month {v} invalide, doit etre entre 1 et 12")
+            raise ValueError(f"month {v} invalide, doit être entre 1 et 12")
         return v
 
     @field_validator("n_alternatives")
     @classmethod
     def check_n_alternatives(cls, v):
         if not (0 <= v <= MAX_ALTERNATIVE_ROUTES):
-            raise ValueError(f"n_alternatives doit etre entre 0 et {MAX_ALTERNATIVE_ROUTES}")
+            raise ValueError(f"n_alternatives doit être entre 0 et {MAX_ALTERNATIVE_ROUTES}")
         return v
 
 
@@ -72,7 +72,7 @@ class ZoneCreate(BaseModel):
     @classmethod
     def check_zone_type(cls, v):
         if v not in ZONE_TYPES:
-            raise ValueError(f"zone_type '{v}' invalide, accepte: {ZONE_TYPES}")
+            raise ValueError(f"zone_type '{v}' invalide, acceptée: {ZONE_TYPES}")
         return v
 
 
@@ -87,7 +87,7 @@ class ZoneUpdate(BaseModel):
     @classmethod
     def check_zone_type(cls, v):
         if v is not None and v not in ZONE_TYPES:
-            raise ValueError(f"zone_type '{v}' invalide, accepte: {ZONE_TYPES}")
+            raise ValueError(f"zone_type '{v}' invalide, acceptée: {ZONE_TYPES}")
         return v
 
 

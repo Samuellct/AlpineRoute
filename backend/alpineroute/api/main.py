@@ -109,7 +109,7 @@ async def calculate_async(req: RouteRequest):
     job_id = str(uuid.uuid4())[:8]
     jobs[job_id] = {
         "status": "running", "progress": 0,
-        "step": "init", "message": "Demarrage...",
+        "step": "init", "message": "Démarrage...",
     }
 
     def _progress_cb(pct, step):
@@ -120,7 +120,7 @@ async def calculate_async(req: RouteRequest):
         try:
             result = run_pipeline(req, progress_callback=_progress_cb)
             jobs[job_id].update(
-                progress=100, step="done", message="Termine",
+                progress=100, step="done", message="Terminé",
                 status="completed", result=result,
             )
         except Exception as e:
@@ -232,7 +232,7 @@ async def api_route_gpx(route_id: int):
     # extraire les coordonnees du Feature
     coords = geojson_data.get("geometry", {}).get("coordinates", [])
     if not coords:
-        raise HTTPException(404, "geojson sans coordonnees")
+        raise HTTPException(404, "GeoJSON sans coordonnées")
 
     # construire le GPX en memoire
     gpx = gpxpy.gpx.GPX()
@@ -338,7 +338,7 @@ async def api_cost_surface():
         # masquer nodata, log-scale, normaliser 0-255
         valid = np.isfinite(cost) & (cost > 0) & (cost != NODATA_VALUE)
         if not np.any(valid):
-            raise HTTPException(404, "surface de cout vide")
+            raise HTTPException(404, "surface de coût vide")
 
         # separer pixels infranchissables (>= 1e6) du terrain normal
         impassable = valid & (cost >= 1e6)
@@ -414,6 +414,83 @@ async def api_cost_surface():
         raise HTTPException(500, f"erreur cost surface: {e}")
 
 
+@app.get("/altitude-surface")
+async def api_altitude_surface():
+    """Retourne le MNT colore du dernier calcul en PNG + bounds."""
+    if not _pipeline._last_dem_surface:
+        raise HTTPException(404, "aucun calcul en cours, lancer /calculate d'abord")
+
+    try:
+        import io
+        from PIL import Image
+
+        dem = _pipeline._last_dem_surface["dem"]
+        bbox = _pipeline._last_dem_surface["bbox_wgs84"]
+
+        valid = np.isfinite(dem) & (dem != NODATA_VALUE) & (dem > -500)
+        if not np.any(valid):
+            raise HTTPException(404, "MNT vide")
+
+        arr = np.where(valid, dem, np.nan)
+        vmin = np.nanpercentile(arr, 2)
+        vmax = np.nanpercentile(arr, 98)
+        if vmax - vmin < 1:
+            vmax = vmin + 100
+
+        norm = np.clip((arr - vmin) / (vmax - vmin), 0, 1)
+
+        # colormap vert -> jaune -> rouge
+        H, W = norm.shape
+        rgba = np.zeros((H, W, 4), dtype=np.uint8)
+
+        r = np.where(norm < 0.5, norm * 2 * 255, 255).astype(np.uint8)
+        g = np.where(norm < 0.5, 255, (1 - (norm - 0.5) * 2) * 255).astype(np.uint8)
+        b = np.zeros_like(r)
+        a = np.where(valid, 180, 0).astype(np.uint8)
+
+        rgba[:, :, 0] = r
+        rgba[:, :, 1] = g
+        rgba[:, :, 2] = b
+        rgba[:, :, 3] = a
+
+        # sous-echantillonner si trop grand
+        max_dim = 500
+        if H > max_dim or W > max_dim:
+            scale = max_dim / max(H, W)
+            new_h, new_w = int(H * scale), int(W * scale)
+            img = Image.fromarray(rgba, 'RGBA')
+            img = img.resize((new_w, new_h), Image.NEAREST)
+        else:
+            img = Image.fromarray(rgba, 'RGBA')
+
+        buf = io.BytesIO()
+        img.save(buf, format='PNG')
+        buf.seek(0)
+
+        bounds = {
+            "south": bbox["lat_min"], "north": bbox["lat_max"],
+            "west": bbox["lon_min"], "east": bbox["lon_max"],
+        }
+
+        return Response(
+            content=buf.getvalue(),
+            media_type="image/png",
+            headers={
+                "X-Bounds-South": str(bounds["south"]),
+                "X-Bounds-North": str(bounds["north"]),
+                "X-Bounds-West": str(bounds["west"]),
+                "X-Bounds-East": str(bounds["east"]),
+                "Cache-Control": "no-cache",
+            },
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("altitude-surface error")
+        raise HTTPException(500, f"erreur altitude surface: {e}")
+
+
 # Zones CRUD
 
 @app.get("/zones")
@@ -444,7 +521,7 @@ async def api_get_zone(zone_id: int):
 async def api_update_zone(zone_id: int, body: ZoneUpdate):
     updates = body.model_dump(exclude_unset=True)
     if not updates:
-        raise HTTPException(400, "rien a mettre a jour")
+        raise HTTPException(400, "rien à mettre à jour")
     ok = update_zone(DB_PATH, zone_id, updates)
     if not ok:
         raise HTTPException(404, f"zone {zone_id} not found")

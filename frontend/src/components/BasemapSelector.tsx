@@ -12,9 +12,10 @@ const basemaps: { id: BasemapId; label: string }[] = [
 const overlays: { id: OverlayId; label: string }[] = [
   { id: 'slopes', label: 'Pentes' },
   { id: 'glaciers', label: 'Glaciers' },
-  { id: 'cost', label: 'Cout' },
+  { id: 'cost', label: 'Coût' },
   { id: 'alpine-routes', label: 'Traces' },
   { id: 'segments', label: 'Segments' },
+  { id: 'altitude', label: 'Altitude' },
 ]
 
 export default function BasemapSelector() {

@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.0.4]
+
+### Added
+- Calque "Altitude" : overlay coloré (vert-jaune-rouge) sur la carte, endpoint `/altitude-surface`
+- Légendes calques : composant Legend.tsx, affiche la légende de chaque calque actif (pentes, glaciers, cout, traces, segments, altitude)
+- Tooltips sur les paramètres du formulaire (résolution, mois, alternatives, mode précis, acclimatisation)
+- Noms dynamiques pour les exports GPX et GeoJSON (`AlpineRoute_{dist}km_D+{dplus}m.gpx`)
+- Commentaires inline sur les constantes non documentées de config.py
+
+### Changed
+- Label "Mois" renommé en "Mois prévu pour la course"
+- "DEM" remplace par "MNT" dans les messages utilisateur et logs backend
+
 ## [2.0.3]
 
 ### Changed

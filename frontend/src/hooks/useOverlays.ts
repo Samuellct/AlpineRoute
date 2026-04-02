@@ -1,7 +1,7 @@
 // hooks overlay pour RouteMap
 import { useEffect, useRef } from 'react'
 import maplibregl from 'maplibre-gl'
-import { fetchGlaciers, fetchCostSurface, fetchAlpineRoutesGeoJSON, fetchSegmentsGeoJSON } from '../api'
+import { fetchGlaciers, fetchCostSurface, fetchAltitudeSurface, fetchAlpineRoutesGeoJSON, fetchSegmentsGeoJSON } from '../api'
 import type { OverlayId, RouteResult } from '../types'
 
 const SLOPES_OVERLAY_URL = 'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.SLOPES.MOUNTAIN&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}'
@@ -389,4 +389,69 @@ export function useSegmentsOverlay(
       if (popupRef.current) { popupRef.current.remove(); popupRef.current = null }
     }
   }, [map, overlays])
+}
+
+
+// -- altitude MNT colore --
+export function useAltitudeOverlay(
+  map: maplibregl.Map | null,
+  overlays: OverlayId[],
+  routeResult: RouteResult | null,
+) {
+  const urlRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!map || !map.isStyleLoaded()) return
+
+    const active = overlays.includes('altitude')
+    const srcId = 'overlay-altitude'
+    const layerId = 'overlay-altitude-layer'
+
+    if (!active || !routeResult) {
+      if (map.getLayer(layerId)) map.removeLayer(layerId)
+      if (map.getSource(srcId)) map.removeSource(srcId)
+      if (urlRef.current) {
+        URL.revokeObjectURL(urlRef.current)
+        urlRef.current = null
+      }
+      return
+    }
+
+    fetchAltitudeSurface()
+      .then(data => {
+        if (urlRef.current) URL.revokeObjectURL(urlRef.current)
+        urlRef.current = data.imageUrl
+
+        if (map.getLayer(layerId)) map.removeLayer(layerId)
+        if (map.getSource(srcId)) map.removeSource(srcId)
+
+        const [sw, ne] = data.bounds
+        map.addSource(srcId, {
+          type: 'image',
+          url: data.imageUrl,
+          coordinates: [
+            [sw[0], ne[1]],
+            [ne[0], ne[1]],
+            [ne[0], sw[1]],
+            [sw[0], sw[1]],
+          ],
+        })
+
+        const before = map.getLayer('alt-routes-halo') ? 'alt-routes-halo' : undefined
+        map.addLayer({
+          id: layerId,
+          type: 'raster',
+          source: srcId,
+          paint: { 'raster-opacity': 0.6 },
+        }, before)
+      })
+      .catch(err => console.warn('altitude surface fetch fail:', err))
+
+    return () => {
+      if (urlRef.current) {
+        URL.revokeObjectURL(urlRef.current)
+        urlRef.current = null
+      }
+    }
+  }, [map, overlays, routeResult])
 }

@@ -16,7 +16,7 @@ from alpineroute.config import (
     ASPECT_NORTH_PENALTY_MAX, ASPECT_NORTH_SLOPE_THRESHOLD,
     GLACIER_COST_FLAT, GLACIER_COST_MODERATE,
     GLACIER_COST_STEEP, GLACIER_COST_VERY_STEEP,
-    ROUGHNESS_CLAMP, ROUGHNESS_SCALE,
+    ROUGHNESS_CUT, ROUGHNESS_SCALE,
     HILLSLOPE_ONSET_DEG, HILLSLOPE_SCALE,
 )
 
@@ -117,7 +117,7 @@ def compute_glacier_cost(glacier_mask, slope_deg):
 
 def compute_roughness_cost(roughness):
     """Cout rugosite: 1 + scale*TRI, clamp a 5m."""
-    r = np.minimum(roughness, ROUGHNESS_CLAMP)
+    r = np.minimum(roughness, ROUGHNESS_CUT)
     return (1.0 + ROUGHNESS_SCALE * r).astype(np.float32)
 
 

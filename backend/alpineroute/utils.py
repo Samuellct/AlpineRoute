@@ -48,7 +48,7 @@ def setup_logging(name=None, level=logging.INFO):
 def load_dem(path):
     # charge le tif, retourne (array, profile, transform)
     if not os.path.exists(path):
-        raise DataNotFoundError(f"DEM introuvable: {path}")
+        raise DataNotFoundError(f"MNT introuvable: {path}")
 
     with rasterio.open(path) as ds:
         data = ds.read(1).astype(np.float32)

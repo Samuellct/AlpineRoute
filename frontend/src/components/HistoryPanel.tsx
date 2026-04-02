@@ -47,7 +47,7 @@ export default function HistoryPanel() {
   }
 
   if (state.historyRoutes.length === 0) {
-    return <div className="text-gray-500 text-sm py-4">Aucune route sauvegardee</div>
+    return <div className="text-gray-500 text-sm py-4">Aucune route sauvegardée</div>
   }
 
   return (

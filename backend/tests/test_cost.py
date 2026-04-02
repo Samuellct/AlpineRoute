@@ -6,7 +6,7 @@ from alpineroute.config import (
     NODATA_VALUE, WORLDCOVER_MULTIPLIERS,
     STEEP_ONSET_DEG, STEEP_FULL_DEG, STEEP_MAX_MULTIPLIER,
     GLACIER_COST_FLAT, GLACIER_COST_STEEP, GLACIER_COST_VERY_STEEP,
-    ROUGHNESS_SCALE, ROUGHNESS_CLAMP,
+    ROUGHNESS_SCALE, ROUGHNESS_CUT,
 )
 from alpineroute.cost.surface import (
     compute_slope_cost,
@@ -194,7 +194,7 @@ class TestRoughnessCost:
 
     def test_clamp_high_tri(self):
         cost = compute_roughness_cost(np.array([10.0]))
-        expected = 1.0 + ROUGHNESS_SCALE * ROUGHNESS_CLAMP
+        expected = 1.0 + ROUGHNESS_SCALE * ROUGHNESS_CUT
         assert abs(cost[0] - expected) < 0.01
 
 

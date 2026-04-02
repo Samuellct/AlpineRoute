@@ -224,7 +224,7 @@ Tous les paramètres sont centralisés dans `backend/alpineroute/config.py` :
 | `GLACIER_COST_STEEP` | 10.0 | Cout glacier 20-30 deg |
 | `GLACIER_COST_VERY_STEEP` | 25.0 | Cout glacier > 30 deg |
 | `ROUGHNESS_SCALE` | 0.8 | Echelle cout rugosite |
-| `ROUGHNESS_CLAMP` | 5.0 | TRI max (m) |
+| `ROUGHNESS_CUT` | 5.0 | TRI max (m) |
 
 ## Limites
 

@@ -4,8 +4,8 @@ import { useNominatim } from '../hooks/useNominatim'
 import type { MarkerPoint } from '../types'
 
 const MONTHS = [
-  'Janvier', 'Fevrier', 'Mars', 'Avril', 'Mai', 'Juin',
-  'Juillet', 'Aout', 'Septembre', 'Octobre', 'Novembre', 'Decembre',
+  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
 ]
 
 const RESOLUTIONS = [0.5, 1.0, 2.0, 5.0, 10.0]
@@ -66,19 +66,19 @@ export default function ParamsForm() {
     <div className="flex flex-col gap-3 text-sm">
       {/* coords / recherche */}
       <SearchField
-        label="Depart"
+        label="Départ"
         point={state.startPoint}
         onSelect={pt => dispatch({ type: 'SET_START_POINT', point: pt })}
       />
       <SearchField
-        label="Arrivee"
+        label="Arrivée"
         point={state.endPoint}
         onSelect={pt => dispatch({ type: 'SET_END_POINT', point: pt })}
       />
 
       {/* resolution */}
-      <div>
-        <label className="text-gray-400 text-xs">Resolution Lidar MNT (m)</label>
+      <div title="Taille du pixel MNT en metres. Plus petit = plus precis mais plus lent.">
+        <label className="text-gray-400 text-xs">Résolution Lidar MNT (m)</label>
         <select
           value={state.params.resolution}
           onChange={e => dispatch({
@@ -93,8 +93,8 @@ export default function ParamsForm() {
       </div>
 
       {/* mois */}
-      <div>
-        <label className="text-gray-400 text-xs">Mois</label>
+      <div title="Influence le calcul : ensoleillement, neige, conditions glaciaires.">
+        <label className="text-gray-400 text-xs">Mois prévu pour la course</label>
         <select
           value={state.params.month}
           onChange={e => dispatch({
@@ -109,7 +109,7 @@ export default function ParamsForm() {
       </div>
 
       {/* routes alternatives */}
-      <div>
+      <div title="Nombre de variantes calculees par penalisation du chemin optimal.">
         <label className="text-gray-400 text-xs">Routes alternatives</label>
         <select
           value={state.params.n_alternatives}
@@ -135,7 +135,7 @@ export default function ParamsForm() {
           className="accent-green-500"
         />
         <span className="flex flex-col">
-          <span>Mode precis</span>
+          <span title="Prend en compte la direction de marche (montee/descente). Plus lent mais plus realiste.">Mode précis</span>
           <span className="text-[10px] text-gray-500">Dijkstra anisotrope</span>
         </span>
       </label>
@@ -150,7 +150,7 @@ export default function ParamsForm() {
           })}
           className="accent-green-500"
         />
-        <span>Acclimatation altitude</span>
+        <span title="Reduit la penalite d'altitude au-dessus de 2500m si vous etes acclimatise.">Acclimatation altitude</span>
       </label>
 
       {/* 3D toggle */}

@@ -59,6 +59,8 @@ logger = logging.getLogger(__name__)
 
 # cache de la derniere surface de cout (pour le calque front)
 _last_cost_surface: dict = {}
+# cache du dernier DEM (pour le calque altitude front)
+_last_dem_surface: dict = {}
 
 
 # poids SSE par etape (total = 100%)
@@ -834,7 +836,7 @@ def run_pipeline(req, progress_callback=None):
         _progress(progress_callback, "dem", 1.0)
 
         dem, profile, transform = load_dem(dem_path)
-        logger.info("DEM charge: %s (%.1f MP)", dem.shape, dem.size / 1e6)
+        logger.info("MNT chargé: %s (%.1f MP)", dem.shape, dem.size / 1e6)
 
         if dem.size > MAX_GRID_PIXELS:
             rec_res = math.ceil(math.sqrt(dem.size * req.resolution**2 / MAX_GRID_PIXELS))
@@ -1014,6 +1016,15 @@ def run_pipeline(req, progress_callback=None):
             logger.info("zones appliquees: %d zones actives", len(user_zones))
             del zone_grid
     _progress(progress_callback, "zones", 1.0)
+
+    # cache le DEM pour le calque altitude front
+    global _last_dem_surface
+    _last_dem_surface = {
+        "dem": dem.copy(),
+        "bbox_wgs84": bbox_wgs84,
+        "transform": transform,
+        "shape": dem.shape,
+    }
 
     # cache la surface de cout pour l'endpoint /cost-surface
     global _last_cost_surface
